@@ -12,12 +12,9 @@ type EventItem = {
 export default function OnboardingPage() {
   const router = useRouter();
 
-  // 말투 선택 상태
   const [tone, setTone] = useState<"casual" | "formal" | "cute" | "deep">(
     "casual"
   );
-
-  // 중요한 이벤트 리스트 상태
   const [events, setEvents] = useState<EventItem[]>([]);
 
   const handleAddEvent = () => {
@@ -44,10 +41,11 @@ export default function OnboardingPage() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    // TODO: 나중에 여기서 백엔드(API)로 실제 저장 호출
-    // formData 만들어서 fetch('/api/targets', { method: 'POST', body: JSON.stringify(...) })
+    // TODO: 백엔드에 대상자 정보 저장하는 API 호출 자리
+    // const payload = { ... }
+    // await fetch("/api/targets", { method: "POST", body: JSON.stringify(payload) })
 
-    // 일단은 저장했다고 치고 홈(메인)으로 이동
+    // 저장했다고 가정하고 홈으로 이동
     router.push("/");
   };
 
@@ -126,7 +124,7 @@ export default function OnboardingPage() {
                   checked={tone === "casual"}
                   onChange={() => setTone("casual")}
                 />
-                <span className="tone-text">편한 반말</span>
+                <span>편한 반말</span>
               </label>
               <label
                 className={
@@ -141,7 +139,7 @@ export default function OnboardingPage() {
                   checked={tone === "formal"}
                   onChange={() => setTone("formal")}
                 />
-                <span className="tone-text">존댓말</span>
+                <span>존댓말</span>
               </label>
               <label
                 className={
@@ -156,7 +154,7 @@ export default function OnboardingPage() {
                   checked={tone === "cute"}
                   onChange={() => setTone("cute")}
                 />
-                <span className="tone-text">애교 섞인 말투</span>
+                <span>애교 섞인 말투</span>
               </label>
               <label
                 className={
@@ -171,7 +169,7 @@ export default function OnboardingPage() {
                   checked={tone === "deep"}
                   onChange={() => setTone("deep")}
                 />
-                <span className="tone-text">감성 진솔 모드</span>
+                <span>감성 진솔 모드</span>
               </label>
             </div>
 
@@ -267,7 +265,7 @@ export default function OnboardingPage() {
         </form>
       </main>
 
-      {/* 하단 네비게이션 – 메인이랑 동일 스타일 */}
+      {/* 하단 네비게이션 */}
       <nav className="bottom-nav">
         <button
           className="nav-item active"

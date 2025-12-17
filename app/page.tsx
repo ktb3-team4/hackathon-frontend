@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { sendKakaoMessage } from "@/utils/kakao";
 
 type Target = {
   id: number;
@@ -44,9 +45,8 @@ export default function HomePage() {
   };
 
   const handleSendKakao = (target: Target) => {
-    // TODO: 여기서 카카오톡 전송 함수 연결
-    // 예: sendKakaoMessage(target, target.recommendation);
-    console.log("카카오톡 전송", target);
+    // 추천 메시지 내용을 그대로 카카오톡으로 전송
+    sendKakaoMessage(target.recommendation);
   };
 
   return (
