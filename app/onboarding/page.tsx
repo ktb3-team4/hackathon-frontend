@@ -1,126 +1,307 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+
+type EventItem = {
+  id: number;
+  title: string;
+  date: string;
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
-  
-  // 동적 이벤트 리스트 상태
-  const [events, setEvents] = useState<{ id: number }[]>([]);
 
-  const addEvent = () => {
-    setEvents([...events, { id: Date.now() }]);
+  // 말투 선택 상태
+  const [tone, setTone] = useState<"casual" | "formal" | "cute" | "deep">(
+    "casual"
+  );
+
+  // 중요한 이벤트 리스트 상태
+  const [events, setEvents] = useState<EventItem[]>([]);
+
+  const handleAddEvent = () => {
+    setEvents((prev) => [
+      ...prev,
+      { id: Date.now(), title: "", date: "" },
+    ]);
   };
 
-  const removeEvent = (id: number) => {
-    setEvents(events.filter(e => e.id !== id));
+  const handleRemoveEvent = (id: number) => {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const handleChangeEvent = (
+    id: number,
+    field: "title" | "date",
+    value: string
+  ) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+    // TODO: 나중에 여기서 백엔드(API)로 실제 저장 호출
+    // formData 만들어서 fetch('/api/targets', { method: 'POST', body: JSON.stringify(...) })
+
+    // 일단은 저장했다고 치고 홈(메인)으로 이동
+    router.push("/");
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col max-w-md mx-auto shadow-xl relative font-sans text-gray-900">
-      
-      {/* 헤더 */}
-      <header className="bg-white sticky top-0 z-50 px-4 h-[60px] flex items-center border-b border-gray-100">
-        <Link href="/" className="text-2xl mr-4 text-gray-500 no-underline">←</Link>
-        <h1 className="text-lg font-bold">정보 등록</h1>
+    <div className="app-frame">
+      {/* 상단 바 */}
+      <header className="app-bar app-bar-back">
+        <button
+          type="button"
+          className="back-button"
+          aria-label="뒤로가기"
+          onClick={() => router.back()}
+        >
+          ←
+        </button>
+        <h1 className="app-title">정보 등록</h1>
       </header>
 
-      {/* 폼 본문 */}
-      <main className="flex-1 overflow-y-auto p-5 pb-10">
-        <form onSubmit={(e) => { e.preventDefault(); router.push('/'); }} className="space-y-8">
-          
-          <section className="flex flex-col gap-6">
-            <h2 className="text-sm font-bold border-b border-gray-100 pb-2">대상자 정보</h2>
-            
+      {/* 가운데 스크롤 영역 */}
+      <main className="app-content">
+        <form className="form" onSubmit={handleSubmit}>
+          <section className="field-group">
+            <h2 className="section-title-sm">대상자 정보</h2>
+
             {/* 이름 */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-2">이름</label>
-              <input type="text" id="name" placeholder="홍길동" className="w-full p-3 bg-gray-50 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            <label className="field-label" htmlFor="name">
+              이름
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              className="input"
+              placeholder="홍길동"
+            />
 
             {/* 관계 */}
-            <div>
-              <label htmlFor="relation" className="block text-sm font-bold text-gray-700 mb-2">대상자와의 관계</label>
-              <select id="relation" className="w-full p-3 bg-gray-50 rounded-lg outline-none">
-                <option>엄마</option>
-                <option>아빠</option>
-                <option>할머니</option>
-                <option>할아버지</option>
-                <option>기타</option>
-              </select>
-            </div>
+            <label className="field-label" htmlFor="relation">
+              대상자와의 관계
+            </label>
+            <select id="relation" name="relation" className="input">
+              <option>엄마</option>
+              <option>아빠</option>
+              <option>할머니</option>
+              <option>할아버지</option>
+              <option>기타</option>
+            </select>
 
             {/* 연락처 */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-bold text-gray-700 mb-2">연락처</label>
-              <input type="tel" id="phone" placeholder="예: 010-1234-5678" className="w-full p-3 bg-gray-50 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            <label className="field-label" htmlFor="phone">
+              연락처
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              className="input"
+              placeholder="예: 010-1234-5678"
+            />
 
-            {/* 말투 (HTML의 tone-options 재현) */}
-            <div>
-              <p className="text-sm font-bold text-gray-700 mb-2">어떤 말투가 편한가요?</p>
-              <div className="grid grid-cols-2 gap-2">
-                {['편한 반말', '존댓말', '애교 섞인 말투', '감성 진솔 모드'].map((tone, idx) => (
-                  <label key={idx} className="cursor-pointer">
-                    <input type="radio" name="tone" className="peer sr-only" defaultChecked={idx===0} />
-                    <div className="p-3 text-center rounded-lg bg-gray-50 text-gray-500 border border-transparent peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:border-blue-200 peer-checked:font-bold transition-all text-sm">
-                      {tone}
-                    </div>
-                  </label>
-                ))}
-              </div>
+            {/* 말투 선택 */}
+            <p className="helper-text">
+              어떤 말투가 이 분과 대화하기에 가장 편한가요?
+            </p>
+            <div className="tone-options">
+              <label
+                className={
+                  "tone-option " +
+                  (tone === "casual" ? "tone-option-selected" : "")
+                }
+              >
+                <input
+                  type="radio"
+                  name="tone"
+                  value="casual"
+                  checked={tone === "casual"}
+                  onChange={() => setTone("casual")}
+                />
+                <span className="tone-text">편한 반말</span>
+              </label>
+              <label
+                className={
+                  "tone-option " +
+                  (tone === "formal" ? "tone-option-selected" : "")
+                }
+              >
+                <input
+                  type="radio"
+                  name="tone"
+                  value="formal"
+                  checked={tone === "formal"}
+                  onChange={() => setTone("formal")}
+                />
+                <span className="tone-text">존댓말</span>
+              </label>
+              <label
+                className={
+                  "tone-option " +
+                  (tone === "cute" ? "tone-option-selected" : "")
+                }
+              >
+                <input
+                  type="radio"
+                  name="tone"
+                  value="cute"
+                  checked={tone === "cute"}
+                  onChange={() => setTone("cute")}
+                />
+                <span className="tone-text">애교 섞인 말투</span>
+              </label>
+              <label
+                className={
+                  "tone-option " +
+                  (tone === "deep" ? "tone-option-selected" : "")
+                }
+              >
+                <input
+                  type="radio"
+                  name="tone"
+                  value="deep"
+                  checked={tone === "deep"}
+                  onChange={() => setTone("deep")}
+                />
+                <span className="tone-text">감성 진솔 모드</span>
+              </label>
             </div>
 
             {/* 생일 */}
-            <div>
-              <label htmlFor="birthday" className="block text-sm font-bold text-gray-700 mb-2">생일</label>
-              <input type="date" id="birthday" className="w-full p-3 bg-gray-50 rounded-lg outline-none text-gray-700" />
+            <label className="field-label" htmlFor="birthday">
+              생일
+            </label>
+            <input id="birthday" name="birthday" type="date" className="input" />
+
+            {/* 중요한 이벤트 */}
+            <div className="events-header">
+              <div>
+                <span className="field-label">중요한 이벤트</span>
+                <p className="helper-text">
+                  생일처럼 날짜와 제목(메인 텍스트)을 함께 추가해 주세요.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="add-event-btn"
+                className="btn btn-small"
+                onClick={handleAddEvent}
+              >
+                + 이벤트 추가
+              </button>
             </div>
 
-            {/* 이벤트 추가 */}
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <span className="block text-sm font-bold text-gray-700">중요한 이벤트</span>
-                  <p className="text-xs text-gray-400 mt-1">생일 외에 기념일을 추가하세요.</p>
+            <div id="events-list" className="events-list">
+              {events.map((event) => (
+                <div key={event.id} className="event-item">
+                  <input
+                    type="text"
+                    className="input event-input"
+                    placeholder="예: 결혼기념일, 부모님 만난 날"
+                    value={event.title}
+                    onChange={(e) =>
+                      handleChangeEvent(event.id, "title", e.target.value)
+                    }
+                  />
+                  <input
+                    type="date"
+                    className="input event-date-input"
+                    value={event.date}
+                    onChange={(e) =>
+                      handleChangeEvent(event.id, "date", e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="remove-event-btn"
+                    onClick={() => handleRemoveEvent(event.id)}
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button type="button" onClick={addEvent} className="text-xs bg-gray-100 px-3 py-1.5 rounded text-gray-600 font-bold hover:bg-gray-200">
-                  + 추가
-                </button>
-              </div>
-              
-              <div className="space-y-2">
-                {events.map((evt) => (
-                  <div key={evt.id} className="flex gap-2 p-2 bg-gray-50 rounded-lg items-center">
-                    <input type="text" placeholder="예: 결혼기념일" className="flex-1 bg-transparent text-sm outline-none p-1" />
-                    <input type="date" className="bg-transparent text-sm outline-none text-gray-500" />
-                    <button type="button" onClick={() => removeEvent(evt.id)} className="text-gray-400 px-2 hover:text-red-500">✕</button>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
 
-            {/* 관심사 */}
-            <div>
-              <label htmlFor="interests" className="block text-sm font-bold text-gray-700 mb-2">관심사 / 취미</label>
-              <textarea id="interests" rows={2} placeholder="예: 여행, 낚시..." className="w-full p-3 bg-gray-50 rounded-lg outline-none resize-none"></textarea>
-            </div>
+            {/* 관심사 / 취미 */}
+            <label className="field-label" htmlFor="interests">
+              관심사 / 취미
+            </label>
+            <textarea
+              id="interests"
+              name="interests"
+              className="textarea input-textarea"
+              rows={2}
+              placeholder="예: 여행, 낚시, 드라마, 음악..."
+            />
 
+            {/* 직업 */}
+            <label className="field-label" htmlFor="job">
+              직업
+            </label>
+            <input
+              id="job"
+              name="job"
+              type="text"
+              className="input"
+              placeholder="현재 또는 예전 직업 / 하는 일"
+            />
           </section>
 
-          <section>
-            <button type="submit" className="w-full bg-blue-600 text-white text-lg font-bold py-3.5 rounded-xl shadow hover:bg-blue-700 transition-colors">
+          {/* 저장 버튼 영역 */}
+          <section className="field-group">
+            <button type="submit" className="btn btn-primary btn-full">
               정보 저장하고 시작하기
             </button>
-            <p className="text-center text-xs text-gray-400 mt-3">
-              나중에 마이페이지에서 수정할 수 있어요.
+            <p className="helper-text">
+              나중에 마이페이지에서 대상자 정보를 다시 수정할 수 있어요.
             </p>
           </section>
-
         </form>
       </main>
+
+      {/* 하단 네비게이션 – 메인이랑 동일 스타일 */}
+      <nav className="bottom-nav">
+        <button
+          className="nav-item active"
+          type="button"
+          onClick={() => router.back()}
+        >
+          <img
+            src="/images/icon_list.png"
+            alt="뒤로가기"
+            className="nav-icon-img"
+          />
+          <span className="nav-label">뒤로가기</span>
+        </button>
+        <button className="nav-item" type="button" onClick={() => router.push("/")}>
+          <img
+            src="/images/icon_home.png"
+            alt="홈"
+            className="nav-icon-img"
+          />
+          <span className="nav-label">홈</span>
+        </button>
+        <button
+          className="nav-item"
+          type="button"
+          onClick={() => router.push("/mypage")}
+        >
+          <img
+            src="/images/icon_settings.png"
+            alt="마이페이지"
+            className="nav-icon-img"
+          />
+          <span className="nav-label">마이페이지</span>
+        </button>
+      </nav>
     </div>
   );
 }
