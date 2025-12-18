@@ -1,0 +1,83 @@
+name: Next.js Push CI/CD (v 1.3)
+
+env:
+  IMAGE_TAG: 1.0.0
+
+on:
+  push:
+    branches:
+      - infra/ci-cd-test
+  pull_request:
+    branches:
+      - main
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Next.js Image Build and Push
+        run: |
+          docker build --platform linux/amd64 \
+            -t ${{ secrets.DOCKER_USERNAME }}/not-me-fe:${{ env.IMAGE_TAG }} \
+            --push .
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Create .env file
+        run: |
+          echo "NEXT_PUBLIC_API_URL=${{ secrets.API_URL }}" >> .env
+          echo "NODE_ENV=production" >> .env
+          echo "IMAGE=${{ secrets.DOCKER_USERNAME }}/not-me-fe:${{ env.IMAGE_TAG }}" >> .env
+
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Get Healthy FE Instance IDs
+        run: |
+          FE_INSTANCE_IDS=$(aws elbv2 describe-target-health \
+            --target-group-arn "${{ secrets.FE_TARGET_GROUP_ARN }}" \
+            --query "TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id" \
+            --output text)
+          echo "FE_INSTANCE_IDS=$FE_INSTANCE_IDS" >> $GITHUB_ENV
+
+      - name: Get FE Public IPs
+        run: |
+          FE_IPS=$(aws ec2 describe-instances \
+            --instance-ids $FE_INSTANCE_IDS \
+            --query "Reservations[].Instances[].PublicIpAddress" \
+            --output text)
+          echo "FE_IPS=$FE_IPS" >> $GITHUB_ENV
+
+      - name: Deploy to all FE instances
+        run: |
+          for IP in $FE_IPS; do
+            scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env \
+              ubuntu@$IP:/home/ubuntu/AWS_DOCKER/fe
+
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$IP \
+              "cd /home/ubuntu/AWS_DOCKER/fe && docker compose down && docker compose pull && docker compose up -d"
+          done
