@@ -34,8 +34,9 @@ body {
 body {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   min-height: 100vh;
+  padding-top: 8px;
 }
 
 /* 기본 label 표시가 inline이라 margin이 안 보이는 경우가 있어 block으로 전환 */
@@ -46,7 +47,7 @@ label {
 
 .app-frame {
   width: 375px;
-  height: 812px;
+  height: 732px;
   background: #ffffff;
   border-radius: 32px;
   overflow: hidden;
@@ -362,8 +363,6 @@ label {
 .summary-card {
   margin-top: 8px;
 }
-
-/* ê³µí†µ í¼ & ì˜¨ë³´ë”© */
 
 .auth-header {
   justify-content: flex-start;
