@@ -43,6 +43,9 @@ jobs:
             --build-arg NEXT_PUBLIC_API_BASE_URL="https://www.ouruniverse.cloud/api" \
             -t ouruniverse-fe .
 
+          docker push wonseoop/hackton-fe:1.0.0
+      
+
   deploy:
     if: github.event.pull_request.merged == true
     needs: build-and-push
