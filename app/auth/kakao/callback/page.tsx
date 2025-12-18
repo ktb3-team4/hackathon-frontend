@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type ApiResult<T> = {
@@ -41,6 +41,14 @@ const pickAccessToken = (
 };
 
 export default function KakaoCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">카카오 로그인 준비 중...</div>}>
+      <KakaoCallbackInner />
+    </Suspense>
+  );
+}
+
+function KakaoCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
