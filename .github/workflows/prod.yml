@@ -6,9 +6,8 @@ env:
 on:
   push:
     branches:
-      - infra/ci-cd-test
+      - infra/ci-cd
       - main
-
 
 jobs:
   build-and-push:
@@ -42,11 +41,11 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Create .env file
-        run: |
-          echo "NEXT_PUBLIC_API_URL=${{ secrets.API_URL }}" >> .env
-          echo "NODE_ENV=production" >> .env
-          echo "IMAGE=wonseoop/hackton-fe:1.0.0" >> .env
+      # - name: Create .env file
+      #   run: |
+      #     echo "NEXT_PUBLIC_API_URL=${{ secrets.API_URL }}" >> .env
+      #     echo "NODE_ENV=production" >> .env
+      #     echo "IMAGE=wonseoop/hackton-fe:1.0.0" >> .env
 
       - name: Install AWS CLI
         uses: unfor19/install-aws-cli-action@v1
@@ -71,8 +70,8 @@ jobs:
       - name: Deploy to all FE instances
         run: |
           for IP in $FE_IPS; do
-            scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env \
-              ubuntu@$IP:/home/ubuntu/AWS_DOCKER/fe
+            # scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env \
+            #   ubuntu@$IP:/home/ubuntu/AWS_DOCKER/fe
 
             ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$IP \
               "cd /home/ubuntu/AWS_DOCKER/fe && docker compose down && docker compose pull && docker compose up -d"
