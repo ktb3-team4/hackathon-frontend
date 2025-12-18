@@ -21,6 +21,11 @@ type ChatStyle = {
   description?: string;
 };
 
+type CaptureFile = {
+  file: File;
+  preview: string;
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
 
@@ -35,6 +40,7 @@ export default function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [chatStyles, setChatStyles] = useState<ChatStyle[]>([]);
+  const [captures, setCaptures] = useState<CaptureFile[]>([]);
 
   const handleAddEvent = () => {
     setEvents((prev) => [...prev, { id: Date.now(), title: "", date: "" }]);
@@ -72,6 +78,30 @@ export default function OnboardingPage() {
     const trimmed = apiBase.replace(/\/api\/?$/, "");
     return `${trimmed}/api`;
   }, [apiBase]);
+
+  const handleCaptureUpload = (files: FileList | null) => {
+    if (!files) return;
+    const remain = 3 - captures.length;
+    if (remain <= 0) return;
+    const selected = Array.from(files).slice(0, remain);
+    const withPreview: CaptureFile[] = selected.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setCaptures((prev) => [...prev, ...withPreview].slice(0, 3));
+  };
+
+  const handleRemoveCapture = (preview: string) => {
+    URL.revokeObjectURL(preview);
+    setCaptures((prev) => prev.filter((c) => c.preview !== preview));
+  };
+
+  useEffect(
+    () => () => {
+      captures.forEach((c) => URL.revokeObjectURL(c.preview));
+    },
+    [captures]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -160,6 +190,32 @@ export default function OnboardingPage() {
       }
       setSubmitting(true);
       try {
+        let chatContent: string | undefined;
+        if (captures.length > 0) {
+          const formData = new FormData();
+          captures.forEach((c) => formData.append("images", c.file));
+          const uploadRes = await fetch(`${apiPrefix}/prompts/images`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+            body: formData,
+          });
+          if (uploadRes.status === 401) {
+            router.replace("/login");
+            return;
+          }
+          if (!uploadRes.ok) {
+            const text = await uploadRes.text();
+            throw new Error(text || "대화 캡처 업로드에 실패했습니다.");
+          }
+          const uploadJson = await uploadRes.json();
+          chatContent =
+            (uploadJson?.data as string | undefined) ??
+            (uploadJson?.message as string | undefined);
+        }
+
         const payload = {
           name,
           relationshipId: relationId,
@@ -168,6 +224,7 @@ export default function OnboardingPage() {
           phoneNumber: phone ? phone.replace(/[^0-9]/g, "") : undefined,
           birthday: birthday || undefined,
           interests: interests || undefined,
+          chatContent,
           events: events
             .filter((ev) => ev.title.trim() || ev.date)
             .map((ev) => ({
@@ -387,6 +444,102 @@ export default function OnboardingPage() {
                 </label>
               ))}
             </div>
+
+            {/* 대화 캡처 업로드 (선택, 최대 3장) */}
+            <input
+              id="capture"
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => handleCaptureUpload(e.target.files)}
+            />
+            <label
+              htmlFor="capture"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "14px 16px",
+                border: "1px dashed #e5e7eb",
+                borderRadius: 14,
+                background: "#f9fafb",
+                cursor: "pointer",
+              }}
+            >
+              <div>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#111827" }}>
+                  대화 캡처 추가 (최대 3장)
+                </p>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#6b7280" }}>
+                  이미지 파일을 선택해 업로드하세요.
+                </p>
+              </div>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#ff8a7a",
+                  background: "#fff3ef",
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                }}
+              >
+                {captures.length}/3
+              </span>
+            </label>
+            {captures.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 8,
+                  marginBottom: 6,
+                }}
+              >
+                {captures.map((item) => (
+                  <div
+                    key={item.preview}
+                    style={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      position: "relative",
+                      border: "1px solid #e5e7eb",
+                      background: "#f3f4f6",
+                    }}
+                  >
+                    <img
+                      src={item.preview}
+                      alt="capture preview"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCapture(item.preview)}
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        background: "rgba(0,0,0,0.55)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 20,
+                        height: 20,
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* 중요한 이벤트 */}
             <div className="events-header">
