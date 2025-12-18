@@ -1,16 +1,40 @@
 "use client";
 
+type KakaoShareOptions = {
+  objectType: "text";
+  text: string;
+  link: {
+    mobileWebUrl: string;
+    webUrl: string;
+  };
+};
+
+interface KakaoShare {
+  sendDefault(options: KakaoShareOptions): void;
+}
+
+interface KakaoSDK {
+  init(key?: string): void;
+  isInitialized(): boolean;
+  Share: KakaoShare;
+}
+
+declare global {
+  interface Window {
+    Kakao?: KakaoSDK;
+  }
+}
+
 // 카카오톡 텍스트 메시지 전송 유틸
 export const sendKakaoMessage = (message: string) => {
   if (typeof window === "undefined") return;
 
-  const { Kakao } = window as any;
+  const { Kakao } = window;
   if (!Kakao) {
     console.error("❌ Kakao SDK not loaded");
     return;
   }
 
-  // 혹시 초기화 안 되어 있으면 한 번 더 초기화
   if (!Kakao.isInitialized()) {
     Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
   }

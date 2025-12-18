@@ -1,3 +1,21 @@
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Regular.woff2") format("woff2"),
+    url("/fonts/Pretendard-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Bold.woff2") format("woff2"),
+    url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -8,8 +26,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-    'Noto Sans KR', sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   background: #f3f4f8;
 }
 
@@ -83,6 +101,9 @@ body {
   text-decoration: none;
   font-size: 20px;
   color: #222222;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .icon-button {
@@ -92,11 +113,33 @@ body {
   font-size: 18px;
 }
 
+@keyframes dots {
+  0%,
+  20% {
+    content: ".";
+  }
+  40% {
+    content: "..";
+  }
+  60% {
+    content: "...";
+  }
+  80%,
+  100% {
+    content: "";
+  }
+}
+
 .app-content {
   flex: 1;
   padding: 16px 18px 20px;
   overflow-y: auto;
   background: linear-gradient(to bottom, #ffffff 0%, #f8f9fc 60%, #f3f4f8 100%);
+  scrollbar-width: none; /* Firefox */
+}
+
+.app-content::-webkit-scrollbar {
+  display: none;
 }
 
 .card {
@@ -152,9 +195,6 @@ body {
   text-decoration: none;
   cursor: pointer;
   border: none;
-  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, background 0.15s ease-out,
-    color 0.15s ease-out;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
 }
 
 .btn-outline {
@@ -167,16 +207,6 @@ body {
 .btn-primary {
   background: linear-gradient(135deg, #ff8a7a, #ffb784);
   color: #ffffff;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
-}
-
-.btn:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .btn-full {
@@ -233,7 +263,12 @@ body {
 .auth-card {
   width: 100%;
   margin-top: 24px;
-  background-image: linear-gradient(145deg, #fff8f3 0%, #ffffff 40%, #f5f7ff 100%);
+  background-image: linear-gradient(
+    145deg,
+    #fff8f3 0%,
+    #ffffff 40%,
+    #f5f7ff 100%
+  );
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -321,7 +356,8 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #4b5563;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  margin-top: 12px;
 }
 
 .textarea-wrapper {
@@ -335,6 +371,7 @@ body {
   padding: 12px 16px;
   font-size: 15px;
   resize: none;
+  font-family: inherit;
 }
 
 .icon-edit {
@@ -360,11 +397,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
   background-color: #ffffff;
   border: 1px solid #e5e5e5;
   font-size: 14px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
 }
 
 .tone-option input {
@@ -372,8 +410,9 @@ body {
 }
 
 .tone-option-selected {
-  border-color: #ff8a7a;
-  background-color: #fff1ec;
+  border-color: #ffceb8;
+  background-color: #fff4ee;
+  box-shadow: 0 8px 20px rgba(255, 138, 122, 0.16);
 }
 
 .toggle-row {
@@ -397,7 +436,7 @@ body {
 }
 
 .toggle-switch::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 2px;
   left: 2px;
@@ -462,10 +501,11 @@ body {
   border: 1px solid #e5e5e5;
   padding: 8px 12px;
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   background-color: #f9fafb;
   transition: border-color 0.12s ease-out, box-shadow 0.12s ease-out,
     background-color 0.12s ease-out;
+  font-family: inherit;
 }
 
 .input:focus {
@@ -491,12 +531,12 @@ body {
 .helper-text {
   font-size: 12px;
   color: #9b9b9b;
-  margin: 2px 0 0;
+  margin: 10px 0 4px;
 }
 
 .events-header {
-  margin-top: 8px;
-  margin-bottom: 4px;
+  margin-top: 14px;
+  margin-bottom: 14px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -518,8 +558,8 @@ body {
 
 .event-item .input {
   height: 36px;
-  padding: 0 10px;
   font-size: 13px;
+  margin: 0;
 }
 
 .event-date-input {
@@ -545,13 +585,16 @@ body {
   background: #f3f4f8;
   color: #8f95a3;
   border-radius: 999px;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 /* targets list */
@@ -565,14 +608,13 @@ body {
 .target-card {
   background: #ffffff;
   border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
+  padding: 18px;
   box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.06);
 
   /* 얇은 선이 보이면 border 제거 */
   border: none;
+  border-left: 4px solid #ffe4d4;
 }
-
 
 .target-head {
   display: flex;
@@ -811,6 +853,83 @@ body {
   margin: 0;
 }
 
+.hero-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff4ec 0%, #fff 60%, #f6f8ff 100%);
+  border: 1px solid #ffe4d4;
+  box-shadow: 0 12px 24px rgba(255, 138, 122, 0.16);
+  margin-bottom: 14px;
+}
+
+.hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: radial-gradient(circle at 0 0, #ffb29a, #ff8a7a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(255, 138, 122, 0.35);
+}
+
+.hero-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #222222;
+  margin: 0;
+}
+
+.hero-subtitle {
+  font-size: 13px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.section-caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ff8a7a;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.pill-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 14px;
+}
+
+.pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f5f5f5;
+  color: #666666;
+  border: 1px solid #ebebeb;
+}
+
+.pill.active {
+  background: #ffebe5;
+  color: #ff8a7a;
+  border-color: #ffceb8;
+}
+
 .question-search {
   margin-top: 4px;
   display: flex;
@@ -1032,7 +1151,7 @@ body {
 
 /* í•˜ë‹¨ë°”ì— ì˜í•´ ì½˜í…ì¸ ê°€ ê°€ë ¤ì§€ì§€ ì•Šë„ë¡ ë©”ì¸ ì—¬ë°± ì¶”ê°€ */
 .app-content {
-  padding-bottom: 80px; 
+  padding-bottom: 80px;
 }
 
 /* ëª¨ë‹¬ ìŠ¤íƒ€ì¼ */
@@ -1113,10 +1232,283 @@ body {
   overflow-y: auto;
   flex: 1;
 }
-
 .nav-icon-img {
   width: 26px;
   height: 26px;
   object-fit: contain;
   display: block;
+}
+
+/* 헤더 숨김/표시 애니메이션 */
+.app-bar {
+  position: absolute; /* 레이아웃에서 분리 */
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.app-bar.is-hidden {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+
+/* 헤더가 숨겨져도 콘텐츠가 갑자기 튀지 않게(선택) */
+.app-content {
+  padding-top: 88px; /* 상단바 높이보다 살짝 크게 */
+}
+
+.app-content {
+  transition: padding-top 0.2s ease;
+}
+
+/* ✅ 폰 프레임 안에서만 기준 잡기 */
+.app-frame {
+  position: relative; /* 이거 없으면 absolute가 화면 전체 기준으로 떠버림 */
+}
+
+/* ✅ 상단바: 프레임 내부에서만 겹치게 */
+.app-frame > .app-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.app-frame > .app-bar.is-hidden {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+
+/* ✅ 스크롤되는 가운데 영역: 상단바 높이만큼 위 패딩 */
+.app-frame > .app-content {
+  padding-top: 20; /* 기본은 헤더와 붙여서 여백 문제 최소화 */
+}
+
+/* mypage 전용 */
+.no-border {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #ffebe5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-icon {
+  font-size: 18px;
+}
+
+.user-name-wrapper {
+  flex: 1;
+}
+
+.user-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-item + .menu-item {
+  border-top: 1px solid #edf0f6;
+}
+
+.menu-text {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.menu-arrow {
+  color: #9ca3af;
+}
+
+.withdraw-section {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.withdraw-link {
+  border: none;
+  background: transparent;
+  color: #9b9b9b;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* targets header row */
+.targets-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* + 버튼 (UI에 어울리게) */
+.fab-add {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff8a7a, #ffb784);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* modal detail text */
+.target-info-item {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #222222;
+  line-height: 1.5;
+}
+
+.target-info-label {
+  color: #9b9b9b;
+  font-size: 13px;
+  margin-right: 6px;
+}
+
+.targets-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fab-add {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff8a7a, #ffb784);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+.target-info-item {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #222222;
+  line-height: 1.5;
+}
+
+.target-info-label {
+  color: #9b9b9b;
+  font-size: 13px;
+  margin-right: 6px;
+}
+
+/* ===== TopBar를 app-bar 크기(홈)와 동일하게 통일 ===== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f2f6;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* ✅ 홈 app-bar: padding 32px 20px 12px 를 그대로 적용
+   ✅ 노치 대응은 padding-top에 safe-area를 더해줌 */
+/* ✅ 상단바 높이를 "홈(app-bar)" 기준으로 강제 고정 */
+.topbar-inner {
+  padding: calc(24px + env(safe-area-inset-top)) 16px 8px;
+
+  /* ✅ 핵심: 홈에서 보이는 총 높이(= padding-top 24 + logo 50 + padding-bottom 8) */
+  min-height: calc(env(safe-area-inset-top) + 90px);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: #ffffff;
+}
+
+.topbar.is-hidden {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+
+/* 홈과 동일한 왼쪽 구성 */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ✅ 홈 로고 크기(50px)로 통일 */
+.topbar-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ✅ 홈 타이틀 스타일에 맞춤 */
+.topbar-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+/* + 버튼 */
+.topbar-add {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+  padding: 6px 10px;
+  border-radius: 12px;
+}
+
+.topbar-add:active {
+  background: #f3f4f8;
+}
+
+/* 홈처럼 +가 없는 페이지는 오른쪽 공간만 맞추기 */
+.topbar-right-spacer {
+  width: 44px;
+  height: 44px;
 }
