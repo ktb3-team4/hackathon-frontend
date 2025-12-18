@@ -1,10 +1,11 @@
 "use client"; // 이거 필수!
 
 import Script from "next/script";
+import type { KakaoSDK } from "@/utils/kakao";
 
 declare global {
   interface Window {
-    Kakao: any;
+    Kakao?: KakaoSDK;
   }
 }
 
@@ -18,8 +19,9 @@ export default function KakaoScript() {
       return;
     }
 
-    if (window.Kakao && !window.Kakao.isInitialized()) {
-      window.Kakao.init(appKey);
+    const { Kakao } = window;
+    if (Kakao && !Kakao.isInitialized()) {
+      Kakao.init(appKey);
       console.log("카카오 SDK 초기화 완료!");
     }
   };
