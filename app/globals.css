@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 *,
 *::before,
 *::after {
@@ -1113,7 +1115,6 @@ body {
   overflow-y: auto;
   flex: 1;
 }
-
 .nav-icon-img {
   width: 26px;
   height: 26px;
