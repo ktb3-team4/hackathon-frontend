@@ -13,7 +13,7 @@ interface KakaoShare {
   sendDefault(options: KakaoShareOptions): void;
 }
 
-interface KakaoSDK {
+export interface KakaoSDK {
   init(key?: string): void;
   isInitialized(): boolean;
   Share: KakaoShare;

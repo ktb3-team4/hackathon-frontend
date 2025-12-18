@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type ApiResult<T> = {
@@ -10,11 +10,51 @@ type ApiResult<T> = {
   message?: string;
 };
 
+type TokenLike =
+  | string
+  | { accessToken?: string }
+  | { token?: string }
+  | { data?: unknown }
+  | { result?: unknown };
+
+const pickAccessToken = (
+  payload: TokenLike | null | undefined
+): string | null => {
+  if (!payload) return null;
+  if (typeof payload === "string") return payload;
+
+  const maybeDirect =
+    (payload as { accessToken?: unknown }).accessToken ??
+    (payload as { token?: unknown }).token;
+  if (typeof maybeDirect === "string") return maybeDirect;
+
+  const nested =
+    (payload as { data?: unknown }).data ??
+    (payload as { result?: unknown }).result;
+  if (!nested) return null;
+  if (typeof nested === "string") return nested;
+
+  const nestedObjToken =
+    (nested as { accessToken?: unknown }).accessToken ??
+    (nested as { token?: unknown }).token;
+  return typeof nestedObjToken === "string" ? nestedObjToken : null;
+};
+
 export default function KakaoCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">카카오 로그인 준비 중...</div>}>
+      <KakaoCallbackInner />
+    </Suspense>
+  );
+}
+
+function KakaoCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    "loading"
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -28,7 +68,10 @@ export default function KakaoCallbackPage() {
   const loginUrl = useMemo(() => {
     if (!apiBaseUrl || !code) return null;
     const params = new URLSearchParams({ code });
-    return `${apiBaseUrl.replace(/\/$/, "")}/auth/kakao/login?${params.toString()}`;
+    return `${apiBaseUrl.replace(
+      /\/$/,
+      ""
+    )}/auth/kakao/login?${params.toString()}`;
   }, [apiBaseUrl, code]);
 
   useEffect(() => {
@@ -39,7 +82,9 @@ export default function KakaoCallbackPage() {
     }
     if (!loginUrl) {
       setStatus("error");
-      setErrorMessage("API 주소가 설정되지 않았습니다. NEXT_PUBLIC_API_BASE_URL을 확인해주세요.");
+      setErrorMessage(
+        "API 주소가 설정되지 않았습니다. NEXT_PUBLIC_API_BASE_URL을 확인해주세요."
+      );
       return;
     }
 
@@ -55,14 +100,12 @@ export default function KakaoCallbackPage() {
           throw new Error(text || "로그인 요청이 실패했습니다.");
         }
 
-        const json = (await response.json()) as ApiResult<string | { accessToken?: string }>;
-        const tokenFromApi =
-          (json?.data as any)?.accessToken ??
-          (json?.data as any)?.token ??
-          (json?.data as any) ??
-          json?.result;
+        const json = (await response.json()) as ApiResult<TokenLike>;
+        const tokenFromApi = pickAccessToken(
+          json?.data ?? json?.result ?? null
+        );
 
-        if (typeof tokenFromApi !== "string") {
+        if (!tokenFromApi) {
           throw new Error("액세스 토큰을 가져오지 못했습니다.");
         }
 
@@ -83,7 +126,10 @@ export default function KakaoCallbackPage() {
               const meJson = await meRes.json();
               const onboarded = Boolean(meJson?.data?.onboarded);
               setStatus("success");
-              setTimeout(() => router.replace(onboarded ? "/" : "/onboarding"), 800);
+              setTimeout(
+                () => router.replace(onboarded ? "/" : "/onboarding"),
+                800
+              );
               return;
             }
           } catch (e) {
@@ -96,7 +142,11 @@ export default function KakaoCallbackPage() {
       } catch (error) {
         console.error(error);
         setStatus("error");
-        setErrorMessage(error instanceof Error ? error.message : "로그인 중 문제가 발생했습니다.");
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "로그인 중 문제가 발생했습니다."
+        );
       }
     };
 
@@ -112,8 +162,12 @@ export default function KakaoCallbackPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FEE500]/40 to-white flex items-center justify-center px-6 text-center">
       <div className="bg-white shadow-lg rounded-3xl p-8 max-w-md w-full border border-gray-100">
-        <div className="text-4xl mb-4">{status === "success" ? "🎉" : status === "error" ? "😥" : "⏳"}</div>
-        <h1 className="text-lg font-extrabold text-gray-900 mb-2">카카오 로그인</h1>
+        <div className="text-4xl mb-4">
+          {status === "success" ? "🎉" : status === "error" ? "😥" : "⏳"}
+        </div>
+        <h1 className="text-lg font-extrabold text-gray-900 mb-2">
+          카카오 로그인
+        </h1>
         <p className="text-sm text-gray-600 leading-relaxed">{renderText()}</p>
         {status === "error" && (
           <button

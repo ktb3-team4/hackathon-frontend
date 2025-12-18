@@ -1,5 +1,25 @@
 // utils/endpoints.ts
-import type { Target } from "@/utils/types";
+// NOTE: 실제 API 연동 전까지 사용하는 목업 헬퍼입니다.
+
+export type TargetEvent = {
+  date: string;
+  description: string;
+};
+
+export type Target = {
+  id: number;
+  name: string;
+  relationshipId: number;
+  chatStyleId: number;
+  age: number;
+  phoneNumber: string;
+  birthday: string;
+  interests?: string;
+  events: TargetEvent[];
+  lastMessageDate: string;
+};
+
+export type TargetPayload = Omit<Target, "id" | "lastMessageDate">;
 
 export const API_BASE_URL = "";
 
@@ -47,13 +67,13 @@ export async function getTarget(targetId: number): Promise<Target | null> {
 }
 
 /** 대상자 등록 */
-export async function postTarget(payload: any): Promise<{ message: string }> {
+export async function postTarget(payload: TargetPayload): Promise<{ message: string }> {
   console.log("MOCK postTarget payload:", payload);
   return { message: "OK" };
 }
 
 /** 대상자 수정 */
-export async function putTarget(targetId: number, payload: any): Promise<{ message: string }> {
+export async function putTarget(targetId: number, payload: TargetPayload): Promise<{ message: string }> {
   console.log("MOCK putTarget targetId:", targetId, "payload:", payload);
   return { message: "OK" };
 }

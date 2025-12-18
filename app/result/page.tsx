@@ -1,11 +1,30 @@
 // app/result/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation"; // URL에서 데이터 꺼내기용
-import { generateMessage } from "../utils/api";    // 아까 만든 API 함수
+import { generateMessage } from "@/utils/api"; // 메시지 생성 API
+
+type KakaoShare = {
+  Share: {
+    sendDefault: (options: {
+      objectType: "text";
+      text: string;
+      link: { mobileWebUrl: string; webUrl: string };
+      buttonTitle: string;
+    }) => void;
+  };
+};
 
 export default function ResultPage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center">로딩 중...</main>}>
+      <ResultPageInner />
+    </Suspense>
+  );
+}
+
+function ResultPageInner() {
   const searchParams = useSearchParams();
   const target = searchParams.get("target") || "부모님";
   const situation = searchParams.get("situation") || "안부";
@@ -31,9 +50,10 @@ export default function ResultPage() {
   }, [target, situation]);
 
   const handleKakaoShare = () => {
-    if (!(window as any).Kakao) return;
-    
-    (window as any).Kakao.Share.sendDefault({
+    const kakao = (window as Window & { Kakao?: KakaoShare }).Kakao;
+    if (!kakao) return;
+
+    kakao.Share.sendDefault({
       objectType: "text",
       text: resultMessage,
       link: {
