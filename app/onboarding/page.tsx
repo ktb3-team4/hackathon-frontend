@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ensureAccessToken } from "@/utils/auth";
 
 type EventItem = {
   id: number;
@@ -9,19 +10,34 @@ type EventItem = {
   date: string;
 };
 
+type Relationship = {
+  id: number;
+  description: string;
+};
+
+type ChatStyle = {
+  id: number;
+  styleName: string;
+  description?: string;
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
 
-  const [tone, setTone] = useState<"casual" | "formal" | "cute" | "deep">(
-    "casual"
-  );
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [name, setName] = useState("");
+  const [relationId, setRelationId] = useState<number | null>(null);
+  const [chatStyleId, setChatStyleId] = useState<number | null>(null);
+  const [phone, setPhone] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [interests, setInterests] = useState("");
+  const [errors, setErrors] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [chatStyles, setChatStyles] = useState<ChatStyle[]>([]);
 
   const handleAddEvent = () => {
-    setEvents((prev) => [
-      ...prev,
-      { id: Date.now(), title: "", date: "" },
-    ]);
+    setEvents((prev) => [...prev, { id: Date.now(), title: "", date: "" }]);
   };
 
   const handleRemoveEvent = (id: number) => {
@@ -38,15 +54,160 @@ export default function OnboardingPage() {
     );
   };
 
+  const isValid = useMemo(
+    () =>
+      name.trim().length > 0 &&
+      relationId !== null &&
+      chatStyleId !== null &&
+      phone.trim().length > 0,
+    [name, relationId, chatStyleId, phone]
+  );
+
+  const apiBase = useMemo(
+    () => (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, ""),
+    []
+  );
+  const apiPrefix = useMemo(() => {
+    if (!apiBase) return "";
+    const trimmed = apiBase.replace(/\/api\/?$/, "");
+    return `${trimmed}/api`;
+  }, [apiBase]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = await ensureAccessToken();
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+      if (!apiPrefix) return;
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      try {
+        const [relRes, styleRes] = await Promise.all([
+          fetch(`${apiPrefix}/relationships`, {
+            headers,
+            credentials: "include",
+          }),
+          fetch(`${apiPrefix}/chat-styles`, {
+            headers,
+            credentials: "include",
+          }),
+        ]);
+
+        if (relRes.status === 401 || styleRes.status === 401) {
+          router.replace("/login");
+          return;
+        }
+
+        if (relRes.ok) {
+          const relJson = await relRes.json();
+          if (Array.isArray(relJson?.data)) {
+            setRelationships(relJson.data);
+            if (relJson.data[0]) setRelationId(relJson.data[0].id);
+          }
+        }
+
+        if (styleRes.ok) {
+          const styleJson = await styleRes.json();
+          if (Array.isArray(styleJson?.data)) {
+            setChatStyles(styleJson.data);
+            if (styleJson.data[0]) setChatStyleId(styleJson.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchData();
+  }, [apiBase, router]);
+
+  const calculateAge = (dateStr: string): number | null => {
+    if (!dateStr) return null;
+    const today = new Date();
+    const birth = new Date(dateStr);
+    if (Number.isNaN(birth.getTime())) return null;
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    // TODO: 백엔드에 대상자 정보 저장하는 API 호출 자리
-    // const payload = { ... }
-    // await fetch("/api/targets", { method: "POST", body: JSON.stringify(payload) })
+    if (!isValid) {
+      setErrors("이름과 관계는 필수입니다.");
+      return;
+    }
+    setErrors(null);
 
-    // 저장했다고 가정하고 홈으로 이동
-    router.push("/");
+    const submit = async () => {
+      if (!apiPrefix) {
+        setErrors("API 주소가 설정되지 않았습니다.");
+        return;
+      }
+      const token = await ensureAccessToken();
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const payload = {
+          name,
+          relationshipId: relationId,
+          chatStyleId,
+          age: calculateAge(birthday),
+          phoneNumber: phone ? phone.replace(/[^0-9]/g, "") : undefined,
+          birthday: birthday || undefined,
+          interests: interests || undefined,
+          events: events
+            .filter((ev) => ev.title.trim() || ev.date)
+            .map((ev) => ({
+              description: ev.title.trim(),
+              date: ev.date || undefined,
+            })),
+        };
+
+        const res = await fetch(`${apiPrefix}/targets`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 401) {
+          router.replace("/login");
+          return;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || "등록에 실패했습니다.");
+        }
+
+        router.push("/");
+      } catch (error) {
+        console.error(error);
+        setErrors(
+          error instanceof Error ? error.message : "오류가 발생했습니다."
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    submit();
   };
 
   return (
@@ -59,51 +220,147 @@ export default function OnboardingPage() {
           aria-label="뒤로가기"
           onClick={() => router.back()}
         >
-          ←
+          &lt;
         </button>
         <h1 className="app-title">정보 등록</h1>
       </header>
 
       {/* 가운데 스크롤 영역 */}
-      <main className="app-content">
+      <main className="app-content" style={{ paddingTop: 96 }}>
         <form className="form" onSubmit={handleSubmit}>
-          <section className="field-group">
+          {/* 헤더 카드 */}
+          <section className="hero-card">
+            <div className="hero-icon">✨</div>
+            <div className="hero-body">
+              <p className="section-caption">Info Setup</p>
+              <h2 className="hero-title">소중한 사람 정보를 저장하세요</h2>
+              <p className="hero-subtitle">
+                이름, 관계, 기념일을 기록해 두면 메시지를 더 따뜻하게 만들 수
+                있어요.
+              </p>
+            </div>
+          </section>
+
+          <section
+            className="card"
+            style={{
+              paddingTop: 18,
+              paddingBottom: 18,
+              paddingLeft: 20,
+              paddingRight: 20,
+              marginLeft: -6,
+              marginRight: -6,
+            }}
+          >
             <h2 className="section-title-sm">대상자 정보</h2>
 
             {/* 이름 */}
-            <label className="field-label" htmlFor="name">
-              이름
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              className="input"
-              placeholder="홍길동"
-            />
-
-            {/* 관계 */}
-            <label className="field-label" htmlFor="relation">
-              대상자와의 관계
-            </label>
-            <select id="relation" name="relation" className="input">
-              <option>엄마</option>
-              <option>아빠</option>
-              <option>할머니</option>
-              <option>할아버지</option>
-              <option>기타</option>
-            </select>
+            <div className="field-row" style={{ gap: 12 }}>
+              <div className="field-col">
+                <label className="field-label" htmlFor="name">
+                  이름
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  className="input"
+                  placeholder="홍길동"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="field-col">
+                <label className="field-label" htmlFor="relation">
+                  관계
+                </label>
+                <select
+                  id="relation"
+                  name="relation"
+                  className="input"
+                  value={relationId ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setRelationId(val ? Number(val) : null);
+                  }}
+                >
+                  {relationId === null && (
+                    <option value="">관계를 불러오는 중...</option>
+                  )}
+                  {relationships.map((rel) => (
+                    <option key={rel.id} value={rel.id}>
+                      {rel.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             {/* 연락처 */}
             <label className="field-label" htmlFor="phone">
               연락처
             </label>
+            <div className="field-row">
+              <input
+                type="tel"
+                className="input"
+                placeholder="010"
+                value={phone.split("-")[0] || ""}
+                onChange={(e) => {
+                  const next = [
+                    e.target.value.replace(/[^0-9]/g, ""),
+                    phone.split("-")[1] || "",
+                    phone.split("-")[2] || "",
+                  ]
+                    .filter(Boolean)
+                    .join("-");
+                  setPhone(next);
+                }}
+              />
+              <input
+                type="tel"
+                className="input"
+                placeholder="1234"
+                value={phone.split("-")[1] || ""}
+                onChange={(e) => {
+                  const next = [
+                    phone.split("-")[0] || "",
+                    e.target.value.replace(/[^0-9]/g, ""),
+                    phone.split("-")[2] || "",
+                  ]
+                    .filter(Boolean)
+                    .join("-");
+                  setPhone(next);
+                }}
+              />
+              <input
+                type="tel"
+                className="input"
+                placeholder="5678"
+                value={phone.split("-")[2] || ""}
+                onChange={(e) => {
+                  const next = [
+                    phone.split("-")[0] || "",
+                    phone.split("-")[1] || "",
+                    e.target.value.replace(/[^0-9]/g, ""),
+                  ]
+                    .filter(Boolean)
+                    .join("-");
+                  setPhone(next);
+                }}
+              />
+            </div>
+
+            <label className="field-label" htmlFor="birthday">
+              생일
+            </label>
             <input
-              id="phone"
-              name="phone"
-              type="tel"
+              id="birthday"
+              name="birthday"
+              type="date"
               className="input"
-              placeholder="예: 010-1234-5678"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
             />
 
             {/* 말투 선택 */}
@@ -111,86 +368,33 @@ export default function OnboardingPage() {
               어떤 말투가 이 분과 대화하기에 가장 편한가요?
             </p>
             <div className="tone-options">
-              <label
-                className={
-                  "tone-option " +
-                  (tone === "casual" ? "tone-option-selected" : "")
-                }
-              >
-                <input
-                  type="radio"
-                  name="tone"
-                  value="casual"
-                  checked={tone === "casual"}
-                  onChange={() => setTone("casual")}
-                />
-                <span>편한 반말</span>
-              </label>
-              <label
-                className={
-                  "tone-option " +
-                  (tone === "formal" ? "tone-option-selected" : "")
-                }
-              >
-                <input
-                  type="radio"
-                  name="tone"
-                  value="formal"
-                  checked={tone === "formal"}
-                  onChange={() => setTone("formal")}
-                />
-                <span>존댓말</span>
-              </label>
-              <label
-                className={
-                  "tone-option " +
-                  (tone === "cute" ? "tone-option-selected" : "")
-                }
-              >
-                <input
-                  type="radio"
-                  name="tone"
-                  value="cute"
-                  checked={tone === "cute"}
-                  onChange={() => setTone("cute")}
-                />
-                <span>애교 섞인 말투</span>
-              </label>
-              <label
-                className={
-                  "tone-option " +
-                  (tone === "deep" ? "tone-option-selected" : "")
-                }
-              >
-                <input
-                  type="radio"
-                  name="tone"
-                  value="deep"
-                  checked={tone === "deep"}
-                  onChange={() => setTone("deep")}
-                />
-                <span>감성 진솔 모드</span>
-              </label>
+              {chatStyles.map((style) => (
+                <label
+                  key={style.id}
+                  className={
+                    "tone-option " +
+                    (chatStyleId === style.id ? "tone-option-selected" : "")
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="tone"
+                    value={style.id}
+                    checked={chatStyleId === style.id}
+                    onChange={() => setChatStyleId(style.id)}
+                  />
+                  <span>{style.styleName}</span>
+                </label>
+              ))}
             </div>
-
-            {/* 생일 */}
-            <label className="field-label" htmlFor="birthday">
-              생일
-            </label>
-            <input id="birthday" name="birthday" type="date" className="input" />
 
             {/* 중요한 이벤트 */}
             <div className="events-header">
-              <div>
-                <span className="field-label">중요한 이벤트</span>
-                <p className="helper-text">
-                  생일처럼 날짜와 제목(메인 텍스트)을 함께 추가해 주세요.
-                </p>
-              </div>
+              <span className="field-label">중요한 이벤트</span>
               <button
                 type="button"
                 id="add-event-btn"
-                className="btn btn-small"
+                className="btn btn-primary btn-small"
                 onClick={handleAddEvent}
               >
                 + 이벤트 추가
@@ -198,29 +402,39 @@ export default function OnboardingPage() {
             </div>
 
             <div id="events-list" className="events-list">
+              {events.length === 0 && (
+                <p className="helper-text">
+                  등록된 이벤트가 없어요. 추가 버튼으로 기념일을 넣어보세요.
+                </p>
+              )}
               {events.map((event) => (
                 <div key={event.id} className="event-item">
-                  <input
-                    type="text"
-                    className="input event-input"
-                    placeholder="예: 결혼기념일, 부모님 만난 날"
-                    value={event.title}
-                    onChange={(e) =>
-                      handleChangeEvent(event.id, "title", e.target.value)
-                    }
-                  />
-                  <input
-                    type="date"
-                    className="input event-date-input"
-                    value={event.date}
-                    onChange={(e) =>
-                      handleChangeEvent(event.id, "date", e.target.value)
-                    }
-                  />
+                  <div className="field-col">
+                    <input
+                      type="text"
+                      className="input event-input"
+                      placeholder="예: 결혼기념일"
+                      value={event.title}
+                      onChange={(e) =>
+                        handleChangeEvent(event.id, "title", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field-col" style={{ maxWidth: 160 }}>
+                    <input
+                      type="date"
+                      className="input event-date-input"
+                      value={event.date}
+                      onChange={(e) =>
+                        handleChangeEvent(event.id, "date", e.target.value)
+                      }
+                    />
+                  </div>
                   <button
                     type="button"
                     className="remove-event-btn"
                     onClick={() => handleRemoveEvent(event.id)}
+                    aria-label="이 이벤트 삭제"
                   >
                     ✕
                   </button>
@@ -229,6 +443,7 @@ export default function OnboardingPage() {
             </div>
 
             {/* 관심사 / 취미 */}
+            <div style={{ height: 8 }} />
             <label className="field-label" htmlFor="interests">
               관심사 / 취미
             </label>
@@ -238,29 +453,34 @@ export default function OnboardingPage() {
               className="textarea input-textarea"
               rows={2}
               placeholder="예: 여행, 낚시, 드라마, 음악..."
+              value={interests}
+              onChange={(e) => setInterests(e.target.value)}
             />
-
-            {/* 직업 */}
-            <label className="field-label" htmlFor="job">
-              직업
-            </label>
-            <input
-              id="job"
-              name="job"
-              type="text"
-              className="input"
-              placeholder="현재 또는 예전 직업 / 하는 일"
-            />
-          </section>
-
-          {/* 저장 버튼 영역 */}
-          <section className="field-group">
-            <button type="submit" className="btn btn-primary btn-full">
-              정보 저장하고 시작하기
-            </button>
-            <p className="helper-text">
-              나중에 마이페이지에서 대상자 정보를 다시 수정할 수 있어요.
-            </p>
+            {/* 저장 버튼 영역 */}
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <button
+                type="submit"
+                className="btn btn-primary btn-full"
+                disabled={submitting || !isValid}
+              >
+                정보 저장하고 시작하기
+              </button>
+              {errors && (
+                <p className="helper-text" style={{ color: "#ff8a7a" }}>
+                  {errors}
+                </p>
+              )}
+              <p className="helper-text" style={{ textAlign: "center" }}>
+                나중에 정보를 다시 수정할 수 있어요.
+              </p>
+            </div>
           </section>
         </form>
       </main>
@@ -279,12 +499,12 @@ export default function OnboardingPage() {
           />
           <span className="nav-label">뒤로가기</span>
         </button>
-        <button className="nav-item" type="button" onClick={() => router.push("/")}>
-          <img
-            src="/images/icon_home.png"
-            alt="홈"
-            className="nav-icon-img"
-          />
+        <button
+          className="nav-item"
+          type="button"
+          onClick={() => router.push("/")}
+        >
+          <img src="/images/icon_home.png" alt="홈" className="nav-icon-img" />
           <span className="nav-label">홈</span>
         </button>
         <button

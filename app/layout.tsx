@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-// 👇 1. 이거 추가
-import KakaoScript from "./components/KakaoScript";
 
-const inter = Inter({ subsets: ["latin"] });
+import KakaoScript from "./components/KakaoScript";
 
 export const metadata: Metadata = {
   title: "효도 메신저",
@@ -18,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={inter.className}>
+      <body>
         {/* 👇 2. 여기에 추가 (children 위나 아래 상관없음) */}
         <KakaoScript /> 
         
