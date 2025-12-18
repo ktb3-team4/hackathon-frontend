@@ -47,7 +47,6 @@ jobs:
       
 
   deploy:
-    if: github.event.pull_request.merged == true
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
