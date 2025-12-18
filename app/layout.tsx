@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-// 👇 1. 이거 추가
+
 import KakaoScript from "./components/KakaoScript";
 
 const inter = Inter({ subsets: ["latin"] });
