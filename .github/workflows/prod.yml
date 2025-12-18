@@ -37,10 +37,11 @@ jobs:
 
       - name: Next.js Image Build and Push
         run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            -t wonseoop/hackton-fe:1.0.0 \
-            --push .
+          docker build \
+            --build-arg NEXT_PUBLIC_KAKAO_API_KEY="d4b7cc8c3bc6aaf2622575556b7bf946" \
+            --build-arg NEXT_PUBLIC_KAKAO_REDIRECT_URI="https://www.ouruniverse.cloud/auth/kakao/callback" \
+            --build-arg NEXT_PUBLIC_API_BASE_URL="https://www.ouruniverse.cloud/api" \
+            -t ouruniverse-fe .
 
   deploy:
     if: github.event.pull_request.merged == true
