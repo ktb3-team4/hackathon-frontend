@@ -9,6 +9,17 @@ on:
       - infra/ci-cd
       - main
 
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+
+
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -32,6 +43,7 @@ jobs:
             --push .
 
   deploy:
+    if: github.event.pull_request.merged == true
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
