@@ -673,6 +673,26 @@ export default function OnboardingPage() {
           <span className="nav-label">마이페이지</span>
         </button>
       </nav>
+
+      {submitting && (
+        <div
+          className="loading-overlay"
+          role="alert"
+          aria-live="assertive"
+          aria-busy="true"
+        >
+          <div className="loading-card">
+            <div className="loading-wave" />
+            <p className="loading-title">소중한 정보를 정리하고 있어요</p>
+            <p className="loading-sub">대화 기록을 살펴서 맞춤 메시지를 만들고 있습니다.</p>
+            <div className="loading-dots">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

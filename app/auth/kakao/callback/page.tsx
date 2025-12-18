@@ -42,7 +42,13 @@ const pickAccessToken = (
 
 export default function KakaoCallbackPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">카카오 로그인 준비 중...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          카카오 로그인 준비 중...
+        </div>
+      }
+    >
       <KakaoCallbackInner />
     </Suspense>
   );
@@ -153,31 +159,9 @@ function KakaoCallbackInner() {
     signIn();
   }, [code, loginUrl, router]);
 
-  const renderText = () => {
-    if (status === "loading") return "카카오 계정 확인 중...";
-    if (status === "success") return "로그인 완료! 잠시 후 홈으로 이동합니다.";
-    return errorMessage || "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FEE500]/40 to-white flex items-center justify-center px-6 text-center">
-      <div className="bg-white shadow-lg rounded-3xl p-8 max-w-md w-full border border-gray-100">
-        <div className="text-4xl mb-4">
-          {status === "success" ? "🎉" : status === "error" ? "😥" : "⏳"}
-        </div>
-        <h1 className="text-lg font-extrabold text-gray-900 mb-2">
-          카카오 로그인
-        </h1>
-        <p className="text-sm text-gray-600 leading-relaxed">{renderText()}</p>
-        {status === "error" && (
-          <button
-            onClick={() => router.replace("/login")}
-            className="mt-6 w-full bg-[#FEE500] text-[#371D1E] font-bold py-3 rounded-xl hover:brightness-95 transition"
-          >
-            로그인 다시 시도하기
-          </button>
-        )}
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-transparent">
+      <div className="callback-spinner" role="status" aria-live="assertive" aria-busy="true" />
     </div>
   );
 }
