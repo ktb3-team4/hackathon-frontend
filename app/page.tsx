@@ -1,9 +1,10 @@
 "use client";
 
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { sendKakaoMessage } from "@/utils/kakao";
 
-type Target = {
+type TargetUI = {
   id: number;
   name: string;
   lastContact: string;
@@ -11,7 +12,7 @@ type Target = {
   phone: string;
 };
 
-const MOCK_TARGETS: Target[] = [
+const MOCK_TARGETS: TargetUI[] = [
   {
     id: 1,
     name: "엄마",
@@ -23,8 +24,7 @@ const MOCK_TARGETS: Target[] = [
     id: 2,
     name: "아빠",
     lastContact: "1주 전",
-    recommendation:
-      "요즘 가장 재미있게 보고 계신 뉴스나 취미가 있으세요?",
+    recommendation: "요즘 가장 재미있게 보고 계신 뉴스나 취미가 있으세요?",
     phone: "01023456789",
   },
   {
@@ -38,56 +38,49 @@ const MOCK_TARGETS: Target[] = [
 
 export default function HomePage() {
   const router = useRouter();
+  const contentRef = useRef<HTMLElement | null>(null);
 
   const handleCall = (phone: string) => {
-    // 모바일에서 전화 앱 열기
     window.location.href = `tel:${phone}`;
   };
 
-  const handleSendKakao = (target: Target) => {
-    // 추천 메시지 내용을 그대로 카카오톡으로 전송
+  const handleSendKakao = (target: TargetUI) => {
     sendKakaoMessage(target.recommendation);
   };
 
   return (
     <div className="app-frame">
-      {/* 상단 바 */}
+      {/* 상단 바 (홈 기준 크기 유지) */}
       <header className="app-bar">
         <div className="app-bar-left">
-          <img
-            src="/images/logo.png"
-            alt="두드림"
-            className="app-title-logo"
-          />
+          <img src="/images/logo.png" alt="두드림" className="app-title-logo" />
           <h1 className="app-title">두드림</h1>
         </div>
       </header>
 
       {/* 가운데 스크롤 영역 */}
-      <main className="app-content">
+      <main className="app-content" ref={(node) => (contentRef.current = node)}>
         <section className="field-group">
           <h2 className="section-title-sm">소중한 사람 목록</h2>
 
           <div className="targets-list">
             {MOCK_TARGETS.map((item) => (
               <article key={item.id} className="target-card">
-                {/* 카드 헤더 */}
                 <div className="target-head">
                   <div>
                     <p className="target-name">{item.name}</p>
                   </div>
+
                   <div className="badge badge-soft">
                     마지막 연락 · {item.lastContact}
                   </div>
                 </div>
 
-                {/* 추천 메시지 영역 */}
                 <div className="target-body">
                   <p className="target-label">추천 메시지</p>
                   <p className="target-reco">{item.recommendation}</p>
                 </div>
 
-                {/* 버튼 영역 */}
                 <div className="target-actions">
                   <button
                     type="button"
@@ -96,6 +89,7 @@ export default function HomePage() {
                   >
                     카카오톡으로 전송하기
                   </button>
+
                   <button
                     type="button"
                     className="btn btn-outline btn-small"
@@ -115,14 +109,10 @@ export default function HomePage() {
         <button
           className="nav-item"
           type="button"
-          onClick={() => router.push("/onboarding")}
+          onClick={() => router.push("/targets")}
         >
-          <img
-            src="/images/icon_list.png"
-            alt="대상자"
-            className="nav-icon-img"
-          />
-          <span className="nav-label">대상자</span>
+          <img src="/images/icon_list.png" alt="목록" className="nav-icon-img" />
+          <span className="nav-label">목록</span>
         </button>
 
         <button
@@ -130,11 +120,7 @@ export default function HomePage() {
           type="button"
           onClick={() => router.push("/")}
         >
-          <img
-            src="/images/icon_home.png"
-            alt="홈"
-            className="nav-icon-img"
-          />
+          <img src="/images/icon_home.png" alt="홈" className="nav-icon-img" />
           <span className="nav-label">홈</span>
         </button>
 
