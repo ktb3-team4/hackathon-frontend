@@ -88,8 +88,14 @@ export default function OnboardingPage() {
 
       try {
         const [relRes, styleRes] = await Promise.all([
-          fetch(`${apiPrefix}/relationships`, { headers, credentials: "include" }),
-          fetch(`${apiPrefix}/chat-styles`, { headers, credentials: "include" }),
+          fetch(`${apiPrefix}/relationships`, {
+            headers,
+            credentials: "include",
+          }),
+          fetch(`${apiPrefix}/chat-styles`, {
+            headers,
+            credentials: "include",
+          }),
         ]);
 
         if (relRes.status === 401 || styleRes.status === 401) {
@@ -193,7 +199,9 @@ export default function OnboardingPage() {
         router.push("/");
       } catch (error) {
         console.error(error);
-        setErrors(error instanceof Error ? error.message : "오류가 발생했습니다.");
+        setErrors(
+          error instanceof Error ? error.message : "오류가 발생했습니다."
+        );
       } finally {
         setSubmitting(false);
       }
@@ -299,7 +307,11 @@ export default function OnboardingPage() {
                 placeholder="010"
                 value={phone.split("-")[0] || ""}
                 onChange={(e) => {
-                  const next = [e.target.value.replace(/[^0-9]/g, ""), phone.split("-")[1] || "", phone.split("-")[2] || ""]
+                  const next = [
+                    e.target.value.replace(/[^0-9]/g, ""),
+                    phone.split("-")[1] || "",
+                    phone.split("-")[2] || "",
+                  ]
                     .filter(Boolean)
                     .join("-");
                   setPhone(next);
@@ -311,7 +323,11 @@ export default function OnboardingPage() {
                 placeholder="1234"
                 value={phone.split("-")[1] || ""}
                 onChange={(e) => {
-                  const next = [phone.split("-")[0] || "", e.target.value.replace(/[^0-9]/g, ""), phone.split("-")[2] || ""]
+                  const next = [
+                    phone.split("-")[0] || "",
+                    e.target.value.replace(/[^0-9]/g, ""),
+                    phone.split("-")[2] || "",
+                  ]
                     .filter(Boolean)
                     .join("-");
                   setPhone(next);
@@ -323,14 +339,17 @@ export default function OnboardingPage() {
                 placeholder="5678"
                 value={phone.split("-")[2] || ""}
                 onChange={(e) => {
-                  const next = [phone.split("-")[0] || "", phone.split("-")[1] || "", e.target.value.replace(/[^0-9]/g, "")]
+                  const next = [
+                    phone.split("-")[0] || "",
+                    phone.split("-")[1] || "",
+                    e.target.value.replace(/[^0-9]/g, ""),
+                  ]
                     .filter(Boolean)
                     .join("-");
                   setPhone(next);
                 }}
               />
             </div>
-            <p className="helper-text">숫자·하이픈 모두 입력 가능, 전송 시 숫자만 저장됩니다.</p>
 
             <label className="field-label" htmlFor="birthday">
               생일

@@ -1,7 +1,7 @@
 @font-face {
   font-family: "Pretendard";
   src: url("/fonts/Pretendard-Regular.woff2") format("woff2"),
-       url("/fonts/Pretendard-Regular.subset.woff2") format("woff2");
+    url("/fonts/Pretendard-Regular.subset.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -10,7 +10,7 @@
 @font-face {
   font-family: "Pretendard";
   src: url("/fonts/Pretendard-Bold.woff2") format("woff2"),
-       url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
+    url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -26,8 +26,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-    "Noto Sans KR", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   background: #f3f4f8;
 }
 
@@ -339,7 +339,8 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #4b5563;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  margin-top: 12px;
 }
 
 .textarea-wrapper {
@@ -513,12 +514,12 @@ body {
 .helper-text {
   font-size: 12px;
   color: #9b9b9b;
-  margin: 6px 0 2px;
+  margin: 10px 0 4px;
 }
 
 .events-header {
-  margin-top: 8px;
-  margin-bottom: 4px;
+  margin-top: 14px;
+  margin-bottom: 14px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
