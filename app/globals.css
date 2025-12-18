@@ -308,6 +308,10 @@ label {
   border: none;
 }
 
+.btn.gap {
+  gap: 8px;
+}
+
 .btn-outline {
   background-color: transparent;
   color: #ff8a7a;
@@ -433,6 +437,13 @@ label {
   border: 1px solid #e4e7f0;
   color: #505766;
   box-shadow: none;
+}
+
+.target-icon-btn {
+  padding: 0 12px;
+  border-color: #f59e0b;
+  color: #b45309;
+  background: #fffaf0;
 }
 
 .kakao-btn {
@@ -777,6 +788,21 @@ label {
   font-size: 14px;
   color: #1f2937;
   line-height: 1.5;
+}
+
+.target-image-wrap {
+  margin-top: 10px;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.target-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  cursor: pointer;
 }
 
 .target-actions {

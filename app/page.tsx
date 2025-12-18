@@ -17,6 +17,7 @@ export default function HomePage() {
   const router = useRouter();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [targets, setTargets] = useState<Target[]>([]);
+  const [imageMap, setImageMap] = useState<Record<number, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hideHeader, setHideHeader] = useState(false);
@@ -122,9 +123,39 @@ export default function HomePage() {
     window.location.href = `tel:${digits}`;
   };
 
+  const getShareableImageUrl = () => {
+    if (typeof window === "undefined") return null;
+    const localUrl = `${window.location.origin}/images/image.png`;
+    const isHttps = /^https:\/\//i.test(localUrl);
+    const isLocalhost = /localhost|127\.0\.0\.1/i.test(localUrl);
+
+    if (isHttps && !isLocalhost) return localUrl;
+    return (
+      process.env.NEXT_PUBLIC_SHARE_IMAGE_URL ||
+      "https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=1200&q=80"
+    );
+  };
+
   const handleSendKakao = (target: Target) => {
-    sendKakaoMessage(target.recommendation);
+    const imageUrl = imageMap[target.id] || undefined;
+    const shareableImage = imageUrl && /^https?:\/\//i.test(imageUrl);
+    if (imageUrl && !shareableImage) {
+      alert("이미지 공유는 외부 URL일 때만 가능합니다. 텍스트만 전송할게요.");
+    }
+
+    sendKakaoMessage(target.recommendation, {
+      linkUrl: window.location.origin,
+      imageUrl: shareableImage ? imageUrl : undefined,
+      title: `${target.name}께`,
+      buttonTitle: "확인하기",
+    });
     updateLastMessageDate(target.id);
+  };
+
+  const handleAttachStaticImage = (target: Target) => {
+    const url = getShareableImageUrl();
+    if (!url) return;
+    setImageMap((prev) => ({ ...prev, [target.id]: url }));
   };
 
   const updateLastMessageDate = async (targetId: number) => {
@@ -226,9 +257,39 @@ export default function HomePage() {
 
                     <div className="target-body">
                       <p className="target-reco">{item.recommendation}</p>
+                      {imageMap[item.id] && (
+                        <div className="target-image-wrap">
+                          <img
+                            src={imageMap[item.id] as string}
+                            alt={`${item.name} 추천 메시지 이미지`}
+                            className="target-image"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(imageMap[item.id] as string, "_blank");
+                            }}
+                          />
+                          {!/^https?:\/\//i.test(imageMap[item.id] || "") && (
+                            <p className="helper-text">
+                              이미지 공유는 외부 URL일 때만 가능합니다.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="target-actions">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-small target-icon-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAttachStaticImage(item);
+                        }}
+                        aria-label="추천 메시지 이미지 추가"
+                        title="추천 메시지 이미지 추가"
+                      >
+                        🖼️
+                      </button>
                       <button
                         type="button"
                         className="btn btn-primary btn-small"
