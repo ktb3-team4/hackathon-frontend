@@ -7,8 +7,10 @@ on:
   push:
     branches:
       - infra/ci-cd-test
-      - main
 
+  pull_request:
+    branches:
+      - main
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -21,10 +23,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Next.js Image Build and Push
         run: |
-          docker build --platform linux/amd64 \
-            -t ${{ secrets.DOCKER_USERNAME }}/not-me-fe:${{ env.IMAGE_TAG }} \
+          docker buildx build \
+            --platform linux/amd64 \
+            -t wonseoop/hackton-fe:1.0.0 \
             --push .
 
   deploy:
@@ -41,7 +47,7 @@ jobs:
         run: |
           echo "NEXT_PUBLIC_API_URL=${{ secrets.API_URL }}" >> .env
           echo "NODE_ENV=production" >> .env
-          echo "IMAGE=${{ secrets.DOCKER_USERNAME }}/not-me-fe:${{ env.IMAGE_TAG }}" >> .env
+          echo "IMAGE=wonseoop/hackton-fe:1.0.0" >> .env
 
       - name: Install AWS CLI
         uses: unfor19/install-aws-cli-action@v1
@@ -55,18 +61,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      - name: Get Healthy FE Instance IDs
-        run: |
-          FE_INSTANCE_IDS=$(aws elbv2 describe-target-health \
-            --target-group-arn "${{ secrets.FE_TARGET_GROUP_ARN }}" \
-            --query "TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id" \
-            --output text)
-          echo "FE_INSTANCE_IDS=$FE_INSTANCE_IDS" >> $GITHUB_ENV
-
-      - name: Get FE Public IPs
+      - name: Get FE Public IPs by Name tag
         run: |
           FE_IPS=$(aws ec2 describe-instances \
-            --instance-ids $FE_INSTANCE_IDS \
+            --filters "Name=tag:Name,Values=Hackton-front" "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[].PublicIpAddress" \
             --output text)
           echo "FE_IPS=$FE_IPS" >> $GITHUB_ENV
