@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { ensureAccessToken } from "@/utils/auth";
 
 type EventItem = {
   id: number;
@@ -9,79 +10,31 @@ type EventItem = {
   date: string;
 };
 
-type Target = {
-  id: string;
-  name: string;
-  relation: string;
-  phone: string;
-  tone: "casual" | "formal" | "cute" | "deep";
-  birthday: string;
-  events: { title: string; date: string }[];
-  interests: string;
-  job: string;
+type Relationship = {
+  id: number;
+  description: string;
 };
 
-const LS_TARGETS = "targets";
-const LS_EDITING = "editingTarget";
-
-function safeParse<T>(v: string | null, fallback: T): T {
-  try {
-    if (!v) return fallback;
-    return JSON.parse(v) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function makeId() {
-  return `t_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
+type ChatStyle = {
+  id: number;
+  styleName: string;
+  description?: string;
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isEditMode = useMemo(
-    () => searchParams.get("edit") === "true",
-    [searchParams]
-  );
 
-  const [targetId, setTargetId] = useState("");
-
-  const [name, setName] = useState("");
-  const [relation, setRelation] = useState("엄마");
-  const [phone, setPhone] = useState("");
-  const [tone, setTone] =
-    useState<"casual" | "formal" | "cute" | "deep">("casual");
-  const [birthday, setBirthday] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [name, setName] = useState("");
+  const [relationId, setRelationId] = useState<number | null>(null);
+  const [chatStyleId, setChatStyleId] = useState<number | null>(null);
+  const [phone, setPhone] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [interests, setInterests] = useState("");
-  const [job, setJob] = useState("");
-
-  /* 수정 모드면 값 채우기 */
-  useEffect(() => {
-    const editing = safeParse<Partial<Target>>(
-      localStorage.getItem(LS_EDITING),
-      {}
-    );
-
-    if (isEditMode && editing.id) {
-      setTargetId(editing.id);
-      setName(editing.name ?? "");
-      setRelation(editing.relation ?? "엄마");
-      setPhone(editing.phone ?? "");
-      setTone((editing.tone as any) ?? "casual");
-      setBirthday(editing.birthday ?? "");
-      setInterests(editing.interests ?? "");
-      setJob(editing.job ?? "");
-      setEvents(
-        (editing.events ?? []).map((e, idx) => ({
-          id: Date.now() + idx,
-          title: e.title,
-          date: e.date,
-        }))
-      );
-    }
-  }, [isEditMode]);
+  const [errors, setErrors] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [chatStyles, setChatStyles] = useState<ChatStyle[]>([]);
 
   const handleAddEvent = () => {
     setEvents((prev) => [...prev, { id: Date.now(), title: "", date: "" }]);
@@ -101,161 +54,368 @@ export default function OnboardingPage() {
     );
   };
 
+  const isValid = useMemo(
+    () =>
+      name.trim().length > 0 &&
+      relationId !== null &&
+      chatStyleId !== null &&
+      phone.trim().length > 0,
+    [name, relationId, chatStyleId, phone]
+  );
+
+  const apiBase = useMemo(
+    () => (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, ""),
+    []
+  );
+  const apiPrefix = useMemo(() => {
+    if (!apiBase) return "";
+    const trimmed = apiBase.replace(/\/api\/?$/, "");
+    return `${trimmed}/api`;
+  }, [apiBase]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = await ensureAccessToken();
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+      if (!apiPrefix) return;
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      try {
+        const [relRes, styleRes] = await Promise.all([
+          fetch(`${apiPrefix}/relationships`, { headers, credentials: "include" }),
+          fetch(`${apiPrefix}/chat-styles`, { headers, credentials: "include" }),
+        ]);
+
+        if (relRes.status === 401 || styleRes.status === 401) {
+          router.replace("/login");
+          return;
+        }
+
+        if (relRes.ok) {
+          const relJson = await relRes.json();
+          if (Array.isArray(relJson?.data)) {
+            setRelationships(relJson.data);
+            if (relJson.data[0]) setRelationId(relJson.data[0].id);
+          }
+        }
+
+        if (styleRes.ok) {
+          const styleJson = await styleRes.json();
+          if (Array.isArray(styleJson?.data)) {
+            setChatStyles(styleJson.data);
+            if (styleJson.data[0]) setChatStyleId(styleJson.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchData();
+  }, [apiBase, router]);
+
+  const calculateAge = (dateStr: string): number | null => {
+    if (!dateStr) return null;
+    const today = new Date();
+    const birth = new Date(dateStr);
+    if (Number.isNaN(birth.getTime())) return null;
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) {
-      alert("이름을 입력해 주세요!");
+    if (!isValid) {
+      setErrors("이름과 관계는 필수입니다.");
       return;
     }
+    setErrors(null);
 
-    const payload: Target = {
-      id: targetId || makeId(),
-      name: name.trim(),
-      relation,
-      phone: phone.trim(),
-      tone,
-      birthday,
-      events: events
-        .filter((e) => e.title || e.date)
-        .map((e) => ({ title: e.title, date: e.date })),
-      interests: interests.trim(),
-      job: job.trim(),
+    const submit = async () => {
+      if (!apiPrefix) {
+        setErrors("API 주소가 설정되지 않았습니다.");
+        return;
+      }
+      const token = await ensureAccessToken();
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const payload = {
+          name,
+          relationshipId: relationId,
+          chatStyleId,
+          age: calculateAge(birthday),
+          phoneNumber: phone ? phone.replace(/[^0-9]/g, "") : undefined,
+          birthday: birthday || undefined,
+          interests: interests || undefined,
+          events: events
+            .filter((ev) => ev.title.trim() || ev.date)
+            .map((ev) => ({
+              description: ev.title.trim(),
+              date: ev.date || undefined,
+            })),
+        };
+
+        const res = await fetch(`${apiPrefix}/targets`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 401) {
+          router.replace("/login");
+          return;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || "등록에 실패했습니다.");
+        }
+
+        router.push("/");
+      } catch (error) {
+        console.error(error);
+        setErrors(error instanceof Error ? error.message : "오류가 발생했습니다.");
+      } finally {
+        setSubmitting(false);
+      }
     };
 
-    const list = safeParse<Target[]>(localStorage.getItem(LS_TARGETS), []);
-    const next =
-      isEditMode && targetId
-        ? list.map((t) => (t.id === payload.id ? payload : t))
-        : [payload, ...list];
-
-    localStorage.setItem(LS_TARGETS, JSON.stringify(next));
-    localStorage.removeItem(LS_EDITING);
-
-    router.push("/targets");
+    submit();
   };
 
   return (
     <div className="app-frame">
-      {/* ✅ 홈/목록과 동일한 "큰" 상단바 */}
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="topbar-left">
-            <button
-              type="button"
-              className="back-button"
-              onClick={() => router.back()}
-            >
-              ←
-            </button>
-            <h1 className="topbar-title">
-              {isEditMode ? "정보 수정" : "정보 등록"}
-            </h1>
-          </div>
-
-          <div className="topbar-right-spacer" />
-        </div>
+      {/* 상단 바 */}
+      <header className="app-bar app-bar-back">
+        <button
+          type="button"
+          className="back-button"
+          aria-label="뒤로가기"
+          onClick={() => router.back()}
+        >
+          &lt;
+        </button>
+        <h1 className="app-title">정보 등록</h1>
       </header>
 
-      {/* 가운데 스크롤 */}
+      {/* 가운데 스크롤 영역 */}
       <main className="app-content">
         <form className="form" onSubmit={handleSubmit}>
-          <section className="field-group">
+          {/* 헤더 카드 */}
+          <section className="hero-card">
+            <div className="hero-icon">✨</div>
+            <div className="hero-body">
+              <p className="section-caption">Info Setup</p>
+              <h2 className="hero-title">소중한 사람 정보를 저장하세요</h2>
+              <p className="hero-subtitle">
+                이름, 관계, 기념일을 기록해 두면 메시지를 더 따뜻하게 만들 수
+                있어요.
+              </p>
+            </div>
+          </section>
+
+          <section
+            className="card"
+            style={{
+              paddingTop: 18,
+              paddingBottom: 18,
+              paddingLeft: 20,
+              paddingRight: 20,
+              marginLeft: -6,
+              marginRight: -6,
+            }}
+          >
             <h2 className="section-title-sm">대상자 정보</h2>
 
-            <label className="field-label">이름</label>
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <label className="field-label">관계</label>
-            <select
-              className="input"
-              value={relation}
-              onChange={(e) => setRelation(e.target.value)}
-            >
-              <option>엄마</option>
-              <option>아빠</option>
-              <option>할머니</option>
-              <option>할아버지</option>
-              <option>기타</option>
-            </select>
-
-            <label className="field-label">연락처</label>
-            <input
-              className="input"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-
-            <p className="helper-text">편한 말투를 선택해 주세요</p>
-            <div className="tone-options">
-              {[
-                ["casual", "편한 반말"],
-                ["formal", "존댓말"],
-                ["cute", "애교 섞인 말투"],
-                ["deep", "감성 진솔 모드"],
-              ].map(([v, label]) => (
-                <label
-                  key={v}
-                  className={`tone-option ${
-                    tone === v ? "tone-option-selected" : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    checked={tone === v}
-                    onChange={() => setTone(v as any)}
-                  />
-                  <span>{label}</span>
+            {/* 이름 */}
+            <div className="field-row" style={{ gap: 12 }}>
+              <div className="field-col">
+                <label className="field-label" htmlFor="name">
+                  이름
                 </label>
-              ))}
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  className="input"
+                  placeholder="홍길동"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="field-col">
+                <label className="field-label" htmlFor="relation">
+                  관계
+                </label>
+                <select
+                  id="relation"
+                  name="relation"
+                  className="input"
+                  value={relationId ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setRelationId(val ? Number(val) : null);
+                  }}
+                >
+                  {relationId === null && (
+                    <option value="">관계를 불러오는 중...</option>
+                  )}
+                  {relationships.map((rel) => (
+                    <option key={rel.id} value={rel.id}>
+                      {rel.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <label className="field-label">생일</label>
+            {/* 연락처 */}
+            <label className="field-label" htmlFor="phone">
+              연락처
+            </label>
+            <div className="field-row">
+              <input
+                type="tel"
+                className="input"
+                placeholder="010"
+                value={phone.split("-")[0] || ""}
+                onChange={(e) => {
+                  const next = [e.target.value.replace(/[^0-9]/g, ""), phone.split("-")[1] || "", phone.split("-")[2] || ""]
+                    .filter(Boolean)
+                    .join("-");
+                  setPhone(next);
+                }}
+              />
+              <input
+                type="tel"
+                className="input"
+                placeholder="1234"
+                value={phone.split("-")[1] || ""}
+                onChange={(e) => {
+                  const next = [phone.split("-")[0] || "", e.target.value.replace(/[^0-9]/g, ""), phone.split("-")[2] || ""]
+                    .filter(Boolean)
+                    .join("-");
+                  setPhone(next);
+                }}
+              />
+              <input
+                type="tel"
+                className="input"
+                placeholder="5678"
+                value={phone.split("-")[2] || ""}
+                onChange={(e) => {
+                  const next = [phone.split("-")[0] || "", phone.split("-")[1] || "", e.target.value.replace(/[^0-9]/g, "")]
+                    .filter(Boolean)
+                    .join("-");
+                  setPhone(next);
+                }}
+              />
+            </div>
+            <p className="helper-text">숫자·하이픈 모두 입력 가능, 전송 시 숫자만 저장됩니다.</p>
+
+            <label className="field-label" htmlFor="birthday">
+              생일
+            </label>
             <input
+              id="birthday"
+              name="birthday"
               type="date"
               className="input"
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
             />
 
+            {/* 말투 선택 */}
+            <p className="helper-text">
+              어떤 말투가 이 분과 대화하기에 가장 편한가요?
+            </p>
+            <div className="tone-options">
+              {chatStyles.map((style) => (
+                <label
+                  key={style.id}
+                  className={
+                    "tone-option " +
+                    (chatStyleId === style.id ? "tone-option-selected" : "")
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="tone"
+                    value={style.id}
+                    checked={chatStyleId === style.id}
+                    onChange={() => setChatStyleId(style.id)}
+                  />
+                  <span>{style.styleName}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* 중요한 이벤트 */}
             <div className="events-header">
               <span className="field-label">중요한 이벤트</span>
               <button
                 type="button"
-                className="btn btn-small"
+                id="add-event-btn"
+                className="btn btn-primary btn-small"
                 onClick={handleAddEvent}
               >
                 + 이벤트 추가
               </button>
             </div>
 
-            <div className="events-list">
+            <div id="events-list" className="events-list">
+              {events.length === 0 && (
+                <p className="helper-text">
+                  등록된 이벤트가 없어요. 추가 버튼으로 기념일을 넣어보세요.
+                </p>
+              )}
               {events.map((event) => (
                 <div key={event.id} className="event-item">
-                  <input
-                    className="input event-input"
-                    placeholder="제목"
-                    value={event.title}
-                    onChange={(e) =>
-                      handleChangeEvent(event.id, "title", e.target.value)
-                    }
-                  />
-                  <input
-                    type="date"
-                    className="input event-date-input"
-                    value={event.date}
-                    onChange={(e) =>
-                      handleChangeEvent(event.id, "date", e.target.value)
-                    }
-                  />
+                  <div className="field-col">
+                    <input
+                      type="text"
+                      className="input event-input"
+                      placeholder="예: 결혼기념일"
+                      value={event.title}
+                      onChange={(e) =>
+                        handleChangeEvent(event.id, "title", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field-col" style={{ maxWidth: 160 }}>
+                    <input
+                      type="date"
+                      className="input event-date-input"
+                      value={event.date}
+                      onChange={(e) =>
+                        handleChangeEvent(event.id, "date", e.target.value)
+                      }
+                    />
+                  </div>
                   <button
                     type="button"
                     className="remove-event-btn"
                     onClick={() => handleRemoveEvent(event.id)}
+                    aria-label="이 이벤트 삭제"
                   >
                     ✕
                   </button>
@@ -263,28 +423,84 @@ export default function OnboardingPage() {
               ))}
             </div>
 
-            <label className="field-label">관심사 / 취미</label>
+            {/* 관심사 / 취미 */}
+            <div style={{ height: 8 }} />
+            <label className="field-label" htmlFor="interests">
+              관심사 / 취미
+            </label>
             <textarea
+              id="interests"
+              name="interests"
               className="textarea input-textarea"
+              rows={2}
+              placeholder="예: 여행, 낚시, 드라마, 음악..."
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
             />
-
-            <label className="field-label">직업</label>
-            <input
-              className="input"
-              value={job}
-              onChange={(e) => setJob(e.target.value)}
-            />
-          </section>
-
-          <section className="field-group">
-            <button type="submit" className="btn btn-primary btn-full">
-              {isEditMode ? "수정 저장하기" : "정보 저장하고 시작하기"}
-            </button>
+            {/* 저장 버튼 영역 */}
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <button
+                type="submit"
+                className="btn btn-primary btn-full"
+                disabled={submitting || !isValid}
+              >
+                정보 저장하고 시작하기
+              </button>
+              {errors && (
+                <p className="helper-text" style={{ color: "#ff8a7a" }}>
+                  {errors}
+                </p>
+              )}
+              <p className="helper-text" style={{ textAlign: "center" }}>
+                나중에 정보를 다시 수정할 수 있어요.
+              </p>
+            </div>
           </section>
         </form>
       </main>
+
+      {/* 하단 네비게이션 */}
+      <nav className="bottom-nav">
+        <button
+          className="nav-item active"
+          type="button"
+          onClick={() => router.back()}
+        >
+          <img
+            src="/images/icon_list.png"
+            alt="뒤로가기"
+            className="nav-icon-img"
+          />
+          <span className="nav-label">뒤로가기</span>
+        </button>
+        <button
+          className="nav-item"
+          type="button"
+          onClick={() => router.push("/")}
+        >
+          <img src="/images/icon_home.png" alt="홈" className="nav-icon-img" />
+          <span className="nav-label">홈</span>
+        </button>
+        <button
+          className="nav-item"
+          type="button"
+          onClick={() => router.push("/mypage")}
+        >
+          <img
+            src="/images/icon_settings.png"
+            alt="마이페이지"
+            className="nav-icon-img"
+          />
+          <span className="nav-label">마이페이지</span>
+        </button>
+      </nav>
     </div>
   );
 }

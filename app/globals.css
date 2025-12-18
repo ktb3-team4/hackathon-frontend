@@ -1,3 +1,21 @@
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Regular.woff2") format("woff2"),
+       url("/fonts/Pretendard-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Bold.woff2") format("woff2"),
+       url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -8,7 +26,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     "Noto Sans KR", sans-serif;
   background: #f3f4f8;
 }
@@ -83,6 +101,9 @@ body {
   text-decoration: none;
   font-size: 20px;
   color: #222222;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .icon-button {
@@ -318,7 +339,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #4b5563;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .textarea-wrapper {
@@ -332,6 +353,7 @@ body {
   padding: 12px 16px;
   font-size: 15px;
   resize: none;
+  font-family: inherit;
 }
 
 .icon-edit {
@@ -357,11 +379,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
   background-color: #ffffff;
   border: 1px solid #e5e5e5;
   font-size: 14px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
 }
 
 .tone-option input {
@@ -369,8 +392,9 @@ body {
 }
 
 .tone-option-selected {
-  border-color: #ff8a7a;
-  background-color: #fff1ec;
+  border-color: #ffceb8;
+  background-color: #fff4ee;
+  box-shadow: 0 8px 20px rgba(255, 138, 122, 0.16);
 }
 
 .toggle-row {
@@ -459,10 +483,11 @@ body {
   border: 1px solid #e5e5e5;
   padding: 8px 12px;
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   background-color: #f9fafb;
   transition: border-color 0.12s ease-out, box-shadow 0.12s ease-out,
     background-color 0.12s ease-out;
+  font-family: inherit;
 }
 
 .input:focus {
@@ -488,7 +513,7 @@ body {
 .helper-text {
   font-size: 12px;
   color: #9b9b9b;
-  margin: 2px 0 0;
+  margin: 6px 0 2px;
 }
 
 .events-header {
@@ -515,8 +540,8 @@ body {
 
 .event-item .input {
   height: 36px;
-  padding: 0 10px;
   font-size: 13px;
+  margin: 0;
 }
 
 .event-date-input {
@@ -542,13 +567,16 @@ body {
   background: #f3f4f8;
   color: #8f95a3;
   border-radius: 999px;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 /* targets list */
