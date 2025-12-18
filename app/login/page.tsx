@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const KAKAO_AUTHORIZE_URL = "https://kauth.kakao.com/oauth/authorize";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const redirectUri = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI;
   const clientId = process.env.NEXT_PUBLIC_KAKAO_API_KEY;
@@ -26,26 +27,25 @@ export default function LoginPage() {
       alert("카카오 로그인 환경변수가 설정되지 않았습니다.");
       return;
     }
-    window.location.href = kakaoLoginUrl;
+    setLoading(true);
+    setTimeout(() => {
+      window.location.href = kakaoLoginUrl as string;
+    }, 300); // 짧은 지연 후 이동
   };
 
   return (
-    <div className="app-frame" style={{ background: "linear-gradient(to bottom, #fdf7ee 0%, #f4f6fb 60%, #eef2f8 100%)" }}>
-      <header className="app-bar">
-        <div className="app-bar-left">
-          <h1 className="app-title">로그인</h1>
+    <div className="app-frame">
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="topbar-left">
+            <img src="/images/logo.png" alt="두드림" className="topbar-logo" />
+            <h1 className="topbar-title">두드림</h1>
+          </div>
+          <div className="topbar-right-spacer" />
         </div>
-        <button
-          type="button"
-          className="back-button"
-          aria-label="뒤로가기"
-          onClick={() => router.back()}
-        >
-          &lt;
-        </button>
       </header>
 
-      <main className="app-content">
+      <main className="app-content" style={{ padding: 16 }}>
         <section className="card home-top-card">
           <p className="section-caption">Dodream</p>
           <h2 className="home-greet-title">카카오로 시작하기</h2>
@@ -54,7 +54,14 @@ export default function LoginPage() {
           </p>
         </section>
 
-        <section className="card" style={{ background: "linear-gradient(135deg, #1f1a2e 0%, #332b4d 100%)", color: "#fff", border: "none" }}>
+        <section
+          className="card"
+          style={{
+            background: "linear-gradient(135deg, #111827 0%, #1f2937 100%)",
+            color: "#fff",
+            border: "none",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
             <span style={{ fontSize: 24 }}>💌</span>
             <div>
@@ -70,19 +77,19 @@ export default function LoginPage() {
           <button
             onClick={handleLogin}
             className="btn kakao-btn btn-full"
-            style={{ marginTop: 14, fontWeight: 800 }}
+            style={{ marginTop: 14, fontWeight: 800, display: "flex", justifyContent: "center", gap: 8, alignItems: "center" }}
+            disabled={loading}
           >
-            카카오 계정으로 계속하기
+            {loading ? (
+              <>
+                <span style={{ display: "inline-block", animation: "dots 1s steps(3, end) infinite" }}>
+                  로그인 중...
+                </span>
+              </>
+            ) : (
+              "카카오 계정으로 계속하기"
+            )}
           </button>
-        </section>
-
-        <section className="card">
-          <h3 className="section-title-sm">로그인 안내</h3>
-          <ul style={{ margin: 0, paddingLeft: 18, color: "#555", lineHeight: 1.6, fontSize: 14 }}>
-            <li>Refresh Token은 HttpOnly 쿠키로 저장돼요.</li>
-            <li>Access Token은 자동으로 저장되어 요청에 사용됩니다.</li>
-            <li>로그인 실패 시 다시 시도하거나 카카오 계정 상태를 확인해 주세요.</li>
-          </ul>
         </section>
       </main>
     </div>

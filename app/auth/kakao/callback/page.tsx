@@ -18,6 +18,12 @@ export default function KakaoCallbackPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const apiPrefix = useMemo(() => {
+    if (!apiBaseUrl) return "";
+    const trimmed = apiBaseUrl.replace(/\/$/, "");
+    const withoutApi = trimmed.replace(/\/api\/?$/, "");
+    return `${withoutApi}/api`;
+  }, [apiBaseUrl]);
 
   const loginUrl = useMemo(() => {
     if (!apiBaseUrl || !code) return null;
@@ -61,6 +67,30 @@ export default function KakaoCallbackPage() {
         }
 
         localStorage.setItem("accessToken", tokenFromApi);
+
+        // 사용자 정보 조회하여 온보딩 여부 확인
+        if (apiPrefix) {
+          try {
+            const meRes = await fetch(`${apiPrefix}/users/me`, {
+              headers: { Authorization: `Bearer ${tokenFromApi}` },
+              credentials: "include",
+            });
+            if (meRes.status === 401) {
+              router.replace("/login");
+              return;
+            }
+            if (meRes.ok) {
+              const meJson = await meRes.json();
+              const onboarded = Boolean(meJson?.data?.onboarded);
+              setStatus("success");
+              setTimeout(() => router.replace(onboarded ? "/" : "/onboarding"), 800);
+              return;
+            }
+          } catch (e) {
+            console.error("me fetch failed", e);
+          }
+        }
+
         setStatus("success");
         setTimeout(() => router.replace("/"), 800);
       } catch (error) {

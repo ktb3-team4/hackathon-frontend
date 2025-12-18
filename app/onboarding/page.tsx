@@ -226,7 +226,7 @@ export default function OnboardingPage() {
       </header>
 
       {/* 가운데 스크롤 영역 */}
-      <main className="app-content">
+      <main className="app-content" style={{ paddingTop: 96 }}>
         <form className="form" onSubmit={handleSubmit}>
           {/* 헤더 카드 */}
           <section className="hero-card">

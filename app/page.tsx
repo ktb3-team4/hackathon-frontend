@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendKakaoMessage } from "@/utils/kakao";
 import { ensureAccessToken } from "@/utils/auth";
@@ -20,6 +19,8 @@ export default function HomePage() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hideHeader, setHideHeader] = useState(false);
+  const contentRef = useRef<HTMLElement | null>(null);
 
   const apiBase = useMemo(
     () => (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, ""),
@@ -96,6 +97,18 @@ export default function HomePage() {
     check();
   }, [router, apiPrefix]);
 
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const atBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+      setHideHeader(atBottom);
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
   const handleCall = (phone?: string | null) => {
     if (!phone) {
       alert("등록된 전화번호가 없습니다.");
@@ -151,14 +164,18 @@ export default function HomePage() {
     <>
       {hasToken ? (
         <div className="app-frame">
-          {/* 상단 헤더 */}
-          <header className="app-bar">
-            <div className="app-bar-left">
-              <h1 className="app-title">대상자 목록</h1>
+          {/* 상단 헤더 - 마이페이지 헤더와 동일 스타일 */}
+          <header className={`topbar ${hideHeader ? "is-hidden" : ""}`}>
+            <div className="topbar-inner">
+              <div className="topbar-left">
+                <img src="/images/logo.png" alt="두드림" className="topbar-logo" />
+                <h1 className="topbar-title">두드림</h1>
+              </div>
+              <div className="topbar-right-spacer" />
             </div>
           </header>
 
-          <main className="app-content">
+          <main className="app-content" ref={contentRef}>
             {/* 상단 소개 카드 */}
             <section className="hero-card">
               <div className="hero-icon">💌</div>
@@ -173,7 +190,16 @@ export default function HomePage() {
 
             {/* 대상자 목록 */}
             <section className="field-group">
-              <h2 className="section-title-sm">대상자 목록</h2>
+              <h2 className="section-title-sm">소중한 사람 목록</h2>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -4, marginBottom: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-small"
+                  onClick={() => router.push("/onboarding")}
+                >
+                  + 소중한 사람 추가
+                </button>
+              </div>
               {loading && <p className="helper-text">불러오는 중...</p>}
               {error && (
                 <p className="helper-text" style={{ color: "#ff8a7a" }}>
@@ -240,17 +266,17 @@ export default function HomePage() {
             <button
               type="button"
               className="nav-item"
-              onClick={() => router.push("/onboarding")}
+              onClick={() => router.push("/targets")}
             >
-              <span className="nav-icon">👥</span>
-              <span className="nav-label">대상자</span>
+              <img src="/images/icon_list.png" alt="목록" className="nav-icon-img" />
+              <span className="nav-label">목록</span>
             </button>
             <button
               type="button"
               className="nav-item active"
               onClick={() => router.push("/")}
             >
-              <span className="nav-icon">🏠</span>
+              <img src="/images/icon_home.png" alt="홈" className="nav-icon-img" />
               <span className="nav-label">홈</span>
             </button>
             <button
@@ -258,7 +284,7 @@ export default function HomePage() {
               className="nav-item"
               onClick={() => router.push("/mypage")}
             >
-              <span className="nav-icon">👤</span>
+              <img src="/images/icon_settings.png" alt="마이페이지" className="nav-icon-img" />
               <span className="nav-label">마이페이지</span>
             </button>
           </nav>

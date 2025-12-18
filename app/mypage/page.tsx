@@ -1,18 +1,33 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function MyPage() {
   const router = useRouter();
+  const [hideHeader, setHideHeader] = useState(false);
+  const contentRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const atBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+      setHideHeader(atBottom);
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="app-frame">
       {/* ✅ 홈/목록과 동일한 "큰" 상단바 */}
-      <header className="topbar">
+      <header className={`topbar ${hideHeader ? "is-hidden" : ""}`}>
         <div className="topbar-inner">
           <div className="topbar-left">
             <img src="/images/logo.png" alt="두드림" className="topbar-logo" />
-            <h1 className="topbar-title">마이 페이지</h1>
+            <h1 className="topbar-title">두드림</h1>
           </div>
 
           <div className="topbar-right-spacer" />
@@ -20,7 +35,7 @@ export default function MyPage() {
       </header>
 
       {/* 가운데 스크롤 영역 */}
-      <main className="app-content">
+      <main className="app-content" ref={contentRef}>
         <section className="field-group no-border">
           {/* 사용자 정보 */}
           <section className="card">
@@ -30,7 +45,7 @@ export default function MyPage() {
               </div>
 
               <div className="user-name-wrapper">
-                <p className="user-name">홍길동</p>
+                <p className="user-name">ella</p>
               </div>
 
               <button
